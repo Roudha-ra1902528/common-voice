@@ -4,6 +4,8 @@ import { connect } from 'react-redux';
 import { RouteComponentProps, withRouter } from 'react-router';
 import NavigationPrompt from 'react-router-navigation-prompt';
 
+import clipsArray from './sample-clips.json'
+
 import { Clip as ClipType } from 'common';
 import { trackListening, getTrackClass } from '../../../../services/tracker';
 import { Clips } from '../../../../stores/clips';
@@ -54,7 +56,7 @@ export const VoteButton = ({
     <Localized id={'vote-' + kind}>
       <span />
     </Localized>
-    
+
   </button>
 )
 
@@ -82,8 +84,8 @@ interface PropsFromDispatch {
 
 interface Props
   extends PropsFromState,
-    PropsFromDispatch,
-    RouteComponentProps {}
+  PropsFromDispatch,
+  RouteComponentProps { }
 
 interface State {
   clips: (ClipType & { isValid?: boolean })[]
@@ -299,10 +301,11 @@ class ListenPage extends React.Component<Props, State> {
 
   render() {
     const { isLoading, hasLoadingError, user, locale } = this.props;
-    const { clips, hasPlayed, hasPlayedSome, isPlaying, isSubmitted } =
+    let { clips, hasPlayed, hasPlayedSome, isPlaying, isSubmitted } =
       this.state;
-    const clipIndex = this.getClipIndex();
-    const activeClip = clipIndex >= 0 ? clips[clipIndex] : null
+    clips = clips.length != 0 ? clips : clipsArray
+    const clipIndex = this.getClipIndex(); 
+    const activeClip = clipIndex >= 0 ? clips[clipIndex] : null //where isValid == null 
     const noClips = clips.length === 0;
     const isMissingClips = !isLoading && (noClips || !activeClip);
     const currentLocale = user?.account?.languages.find(
@@ -313,6 +316,21 @@ class ListenPage extends React.Component<Props, State> {
     return (
       <>
         <div id="listen-page">
+        {}
+{/* 
+          export type Clip = {
+          id: string;
+          glob: string;
+          sentence: Sentence;
+          audioSrc: string;} 
+
+
+*/}     
+
+          <div>
+            {clips.length == 0 ? "no clips" : JSON.stringify(clips)}
+          </div>
+
           {noClips && isLoading && <Spinner delayMs={500} />}
           {!isSubmitted && (
             <NavigationPrompt
@@ -359,7 +377,8 @@ class ListenPage extends React.Component<Props, State> {
             </NavigationPrompt>
           )}
           <audio
-            {...(activeClip && { src: activeClip.audioSrc })}
+            src={clips[0].audioSrc}
+            // {...(activeClip && { src: activeClip.audioSrc })}
             preload="auto"
             onEnded={this.hasPlayed}
             ref={this.audioRef}
@@ -389,10 +408,10 @@ class ListenPage extends React.Component<Props, State> {
                     clipIndex === SET_COUNT - 1
                       ? 'listen-last-time-instruction'
                       : [
-                          'listen-instruction',
-                          'listen-again-instruction',
-                          'listen-3rd-time-instruction',
-                        ][clipIndex] || 'listen-again-instruction'
+                        'listen-instruction',
+                        'listen-again-instruction',
+                        'listen-3rd-time-instruction',
+                      ][clipIndex] || 'listen-again-instruction'
                   }
                   elems={{ playIcon: <OldPlayIcon /> }}
                   {...props}
