@@ -180,12 +180,16 @@ export default class Clip {
    * Ensure errors from this function include the term save_clip_error
    * to be easily parsed from other errors
    */
+
+
   saveClip = async (request: Request, response: Response) => {
     const { client_id, headers } = request;
     const sentenceId = headers.sentence_id as string;
     const source = headers.source || 'unidentified';
     const format = headers['content-type'];
     const size = headers['content-length'];
+
+    console.log(`request: ${request}`)
 
     if (!sentenceId || !client_id) {
       this.clipSaveError(

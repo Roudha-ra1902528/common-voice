@@ -125,9 +125,19 @@ export default class API {
     return this.fetch(`${this.getLocalePath()}/sentences?count=${count}`)
   }
 
+  // export type Clip = {
+  //   id: string;
+  //   glob: string;
+  //   sentence: Sentence;
+  //   audioSrc: string;
+  // };
+
   async fetchRandomClips(count = 1): Promise<Clip[]> {
+    // console.log(`testing fetchRandomClips`)
+    // console.log(`${this.getClipPath()}?count=${count}`)
     return this.fetch(`${this.getClipPath()}?count=${count}`)
   }
+
 
   uploadClip(
     blob: Blob,
@@ -152,6 +162,7 @@ export default class API {
       body: blob,
     })
   }
+  
   saveVote(id: string, isValid: boolean): Promise<Vote> {
     return this.fetch(`${this.getClipPath()}/${id}/votes`, {
       method: 'POST',

@@ -78,10 +78,10 @@ interface PropsFromDispatch {
 
 interface Props
   extends LocalePropsFromState,
-    WithLocalizationProps,
-    PropsFromState,
-    PropsFromDispatch,
-    RouteComponentProps<any, any, any> {}
+  WithLocalizationProps,
+  PropsFromState,
+  PropsFromDispatch,
+  RouteComponentProps<any, any, any> { }
 
 interface State {
   clips: SentenceRecording[];
@@ -405,94 +405,97 @@ class SpeakPage extends React.Component<Props, State> {
 
     this.setState({ clips: [], isSubmitted: true });
 
-    addUploads([
-      ...clips.map(({ sentence, recording }) => async () => {
-        let retries = 3;
-        while (retries) {
-          try {
-            const {
-              showFirstContributionToast = false,
-              hasEarnedSessionToast = false,
-              showFirstStreakToast = false,
-              challengeEnded = true,
-            } = await api.uploadClip(
-              recording.blob,
-              sentence.id,
-              this.demoMode
-            );
-            URL.revokeObjectURL(recording.url);
-            try {
-              sessionStorage.setItem(
-                'challengeEnded',
-                JSON.stringify(challengeEnded)
-              );
-              sessionStorage.setItem('hasContributed', 'true');
-            } catch (e) {
-              console.warn(`A sessionStorage error occurred ${e.message}`);
-            }
 
-            if (showFirstContributionToast) {
-              addAchievement(
-                50,
-                "You're on your way! Congrats on your first contribution.",
-                'success'
-              );
-            }
-            if (showFirstStreakToast) {
-              addAchievement(
-                50,
-                'You completed a three-day streak! Keep it up.',
-                'success'
-              );
-            }
-            if (
-              !JSON.parse(sessionStorage.getItem('challengeEnded')) &&
-              JSON.parse(sessionStorage.getItem('hasShared')) &&
-              !hasEarnedSessionToast
-            ) {
-              addAchievement(
-                50,
-                "You're on a roll! You sent an invite and contributed in the same session.",
-                'success'
-              );
-              sessionStorage.removeItem('hasShared');
-              // Tell back-end user get unexpected achievement: invite + contribute in the same session
-              // Each user can only get once.
-              api.setInviteContributeAchievement();
-            }
-            if (!user.account) {
-              tallyRecording();
-            }
-            retries = 0;
-          } catch (error) {
-            let key = 'error-clip-upload';
+    
 
-            if (error.message.includes('save_clip_error')) {
-              key = 'error-clip-upload-server';
-            }
+    // addUploads([
+    //   ...clips.map(({ sentence, recording }) => async () => {
+    //     let retries = 3;
+    //     while (retries) {
+    //       try {
+    //         const {
+    //           showFirstContributionToast = false,
+    //           hasEarnedSessionToast = false,
+    //           showFirstStreakToast = false,
+    //           challengeEnded = true,
+    //         } = await api.uploadClip(
+    //           recording.blob,
+    //           sentence.id,
+    //           this.demoMode
+    //         );
+    //         URL.revokeObjectURL(recording.url);
+    //         try {
+    //           sessionStorage.setItem(
+    //             'challengeEnded',
+    //             JSON.stringify(challengeEnded)
+    //           );
+    //           sessionStorage.setItem('hasContributed', 'true');
+    //         } catch (e) {
+    //           console.warn(`A sessionStorage error occurred ${e.message}`);
+    //         }
 
-            retries--;
-            await new Promise(resolve => setTimeout(resolve, 1000));
+    //         if (showFirstContributionToast) {
+    //           addAchievement(
+    //             50,
+    //             "You're on your way! Congrats on your first contribution.",
+    //             'success'
+    //           );
+    //         }
+    //         if (showFirstStreakToast) {
+    //           addAchievement(
+    //             50,
+    //             'You completed a three-day streak! Keep it up.',
+    //             'success'
+    //           );
+    //         }
+    //         if (
+    //           !JSON.parse(sessionStorage.getItem('challengeEnded')) &&
+    //           JSON.parse(sessionStorage.getItem('hasShared')) &&
+    //           !hasEarnedSessionToast
+    //         ) {
+    //           addAchievement(
+    //             50,
+    //             "You're on a roll! You sent an invite and contributed in the same session.",
+    //             'success'
+    //           );
+    //           sessionStorage.removeItem('hasShared');
+    //           // Tell back-end user get unexpected achievement: invite + contribute in the same session
+    //           // Each user can only get once.
+    //           api.setInviteContributeAchievement();
+    //         }
+    //         if (!user.account) {
+    //           tallyRecording();
+    //         }
+    //         retries = 0;
+    //       } catch (error) {
+    //         let key = 'error-clip-upload';
 
-            if (retries == 0 && confirm(getString(key))) {
-              retries = 3;
-            }
-          }
-        }
-      }),
-      async () => {
-        trackRecording('submit', locale);
-        refreshUser();
-        addNotification(
-          <>
-            <CheckIcon />{' '}
-            <Localized id="clips-uploaded">
-              <span />
-            </Localized>
-          </>
-        );
-      },
-    ]);
+    //         if (error.message.includes('save_clip_error')) {
+    //           key = 'error-clip-upload-server';
+    //         }
+
+    //         retries--;
+    //         await new Promise(resolve => setTimeout(resolve, 1000));
+
+    //         if (retries == 0 && confirm(getString(key))) {
+    //           retries = 3;
+    //         }
+    //       }
+    //     }
+    //   }),
+    //   async () => {
+    //     trackRecording('submit', locale);
+    //     refreshUser();
+    //     addNotification(
+    //       <>
+    //         <CheckIcon />{' '}
+    //         <Localized id="clips-uploaded">
+    //           <span />
+    //         </Localized>
+    //       </>
+    //     );
+    //   },
+    // ]);
 
     return true;
   };
@@ -603,6 +606,13 @@ class SpeakPage extends React.Component<Props, State> {
 
     return (
       <>
+        <div style={{ width: "500px" }}>
+   
+              {JSON.stringify(clips)}
+            
+        </div>
+
+
         <div id="speak-page">
           {noNewClips && isLoading && <Spinner delayMs={500} />}
           {!isSubmitted && (
@@ -721,9 +731,9 @@ class SpeakPage extends React.Component<Props, State> {
                       this.isRecording
                         ? 'record-stop-instruction'
                         : recordingIndex === SET_COUNT - 1
-                        ? 'record-last-instruction'
-                        : ['record-instruction', 'record-again-instruction'][
-                            recordingIndex
+                          ? 'record-last-instruction'
+                          : ['record-instruction', 'record-again-instruction'][
+                          recordingIndex
                           ] || 'record-again-instruction2'
                     }
                     elems={{
@@ -763,8 +773,8 @@ class SpeakPage extends React.Component<Props, State> {
                   recordingIndex === i
                     ? 'active'
                     : clip.recording
-                    ? 'done'
-                    : 'pending'
+                      ? 'done'
+                      : 'pending'
                 }
                 onRerecord={() => this.rerecord(i)}>
                 {rerecordIndex === i && (
@@ -806,14 +816,14 @@ class SpeakPage extends React.Component<Props, State> {
                 key: 'shortcut-discard-ongoing-recording',
                 label: 'shortcut-discard-ongoing-recording-label',
                 // This is handled in handleKeyUp, separately.
-                action: () => {},
+                action: () => { },
               },
               {
                 key: 'shortcut-submit',
                 label: 'shortcut-submit-label',
                 icon: <ReturnKeyIcon />,
                 // This is handled in handleKeyUp, separately.
-                action: () => {},
+                action: () => { },
               },
             ]}
             type="speak"

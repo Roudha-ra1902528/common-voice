@@ -54,6 +54,7 @@ export const VoteButton = ({
     <Localized id={'vote-' + kind}>
       <span />
     </Localized>
+    
   </button>
 )
 

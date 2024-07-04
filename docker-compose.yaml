@@ -75,3 +75,5 @@ services:
 
 networks:
   voice-web:
+volumes:
+  cv-data:

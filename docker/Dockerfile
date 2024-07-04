@@ -20,16 +20,19 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y yarn ffmpeg vim
 
 # Prepare for nonroot user
-RUN groupadd -g $GID app; \
-    useradd -g $GID -u $UID -m -d /code -s /usr/sbin/nologin app
+# RUN groupadd -g $GID app; \
+#     useradd -g $GID -u $UID -m -d /code -s /usr/sbin/nologin app
 
-USER app
+# USER app
+
+RUN mkdir /code
 
 # Add project source
-COPY --chown=app:app . /code
+COPY .. /code
 
 # Setup work directory
 WORKDIR /code
+
 
 # Create directory for storing logs
 RUN mkdir /code/logs

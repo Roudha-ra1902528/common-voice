@@ -204,7 +204,8 @@ let LocalizedPage: any = class extends React.Component<
       this.props
     const { uploadPercentage } = this.state
 
-    const isContributable = languages.contributableLocales.includes(locale)
+    // const isContributable = languages.contributableLocales.includes(locale)
+    const isContributable = true
 
     return (
       <>
@@ -304,6 +305,7 @@ const App = () => {
           <Router history={history}>
             <LanguagesProvider>
               <LocalizedErrorBoundary>
+                again
                 <LocalizedPage />
               </LocalizedErrorBoundary>
             </LanguagesProvider>
