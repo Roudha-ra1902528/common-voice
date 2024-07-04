@@ -249,6 +249,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
         {showShareModal && (
           <ShareModal onRequestClose={this.toggleShareModal} />
         )}
+        contibution layout
         {showShortcutsModal && (
           <Modal
             innerClassName="shortcuts-modal"
