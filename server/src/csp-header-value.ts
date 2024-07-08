@@ -30,11 +30,14 @@ const SOURCES = {
     '*.paypal.com',
   ],
   'media-src': [
+    "'self'",
     'data:',
     'blob:',
     'https://*.amazonaws.com',
     'https://*.amazon.com',
     'https://*.googleapis.com',
+    'https://www2.cs.uic.edu', 
+    'https://rasd.green.org:*',
   ],
   'script-src': [
     "'self'",

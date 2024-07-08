@@ -37,6 +37,8 @@ import { Notifications } from '../../../stores/notifications';
 
 import { SecondPostSubmissionCTA } from './speak/secondSubmissionCTA/secondSubmissionCTA';
 import Success from './success';
+import { Clip as ClipType } from 'common';
+
 
 import './contribution.css';
 
@@ -94,6 +96,7 @@ export interface ContributionPageProps
     action: () => any;
   }[];
   type: 'speak' | 'listen';
+  clips?: (ClipType & { isValid?: boolean })[]
 }
 
 interface State {
@@ -107,6 +110,8 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
   static defaultProps = {
     isFirstSubmit: false,
   };
+  prop = this.props;
+
 
   state: State = {
     selectedPill: null,
@@ -119,6 +124,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
   private wave: Wave;
 
   componentDidMount() {
+    console.log(this.prop.clips ?? 'noclips')
     this.startWaving();
     window.addEventListener('keydown', this.handleKeyDown);
   }
@@ -249,7 +255,6 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
         {showShareModal && (
           <ShareModal onRequestClose={this.toggleShareModal} />
         )}
-        contibution layout
         {showShortcutsModal && (
           <Modal
             innerClassName="shortcuts-modal"
@@ -378,6 +383,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
 
     return (
       <>
+      
         <div className="cards-and-pills">
           <div />
 
@@ -434,6 +440,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
                         {sentence?.text}
                         {sentence?.taxonomy ? (
                           <div className="sentence-taxonomy">
+                            hi
                             <Localized id="target-segment-generic-card">
                               <span className="taxonomy-message" />
                             </Localized>
@@ -446,6 +453,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
                                 <span />
                               </Localized>
                             </StyledLink>
+                            hi
                           </div>
                         ) : null}
                         {sentence?.variant && (

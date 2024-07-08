@@ -178,6 +178,21 @@ module.exports = (_env, argv) => {
             },
           },
         },
+        {
+          test: /\.(mp3|wav|ogg)$/,
+          loader: 'file-loader',
+          options: {
+            esModule: false, // To ensure compatibility with CommonJS
+            name() {
+              if (IS_DEVELOPMENT) {
+                return '[path][name].[ext]';
+              }
+
+              return `[name].[contenthash:${HASH_LENGTH}].[ext]`;
+            },
+            outputPath: 'assets/audio',
+          },
+        },
       ],
     },
     plugins,

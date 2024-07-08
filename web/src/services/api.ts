@@ -133,8 +133,6 @@ export default class API {
   // };
 
   async fetchRandomClips(count = 1): Promise<Clip[]> {
-    // console.log(`testing fetchRandomClips`)
-    // console.log(`${this.getClipPath()}?count=${count}`)
     return this.fetch(`${this.getClipPath()}?count=${count}`)
   }
 
