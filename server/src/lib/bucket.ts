@@ -108,39 +108,52 @@ export default class Bucket {
       Sentry.Severity.Info
     )
 
+
     // Use for instead of .map so that it can break once enough clips are assembled
     for (let i = 0; i < clips.length; i++) {
       const { id, path, sentence, original_sentence_id, taxonomy } = clips[i]
 
-      try {
-        const metadata = await pipe(
-          getMetadataFromFile(getConfig().CLIP_BUCKET_NAME)(path),
-          TE.getOrElse(() => T.of({ size: 0 }))
-        )()
 
-        // if the clip is smaller than 256 bytes it is most likely blank and should be skipped
-        if (metadata.size >= 256) {
-          clipPromises.push({
-            id: id.toString(),
-            glob: path.replace('.mp3', ''),
-            sentence: { id: original_sentence_id, text: sentence, taxonomy },
-            audioSrc: await this.getPublicUrl(path),
-          })
-        } else {
-          console.log(`clip_id ${id} at ${path} is smaller than 256 bytes`)
+
+      if (path.startsWith('https://') || path.startsWith('https://')) {
+        clipPromises.push({
+          id: id.toString(),
+          glob: path.replace('.mp3', ''),
+          sentence: { id: original_sentence_id, text: sentence, taxonomy },
+          audioSrc: path,
+        })
+      } else {
+
+        try {
+          const metadata = await pipe(
+            getMetadataFromFile(getConfig().CLIP_BUCKET_NAME)(path),
+            TE.getOrElse(() => T.of({ size: 0 }))
+          )()
+
+          // if the clip is smaller than 256 bytes it is most likely blank and should be skipped
+          if (metadata.size >= 256) {
+            clipPromises.push({
+              id: id.toString(),
+              glob: path.replace('.mp3', ''),
+              sentence: { id: original_sentence_id, text: sentence, taxonomy },
+              audioSrc: await this.getPublicUrl(path),
+            })
+          } else {
+            console.log(`clip_id ${id} at ${path} is smaller than 256 bytes`)
+            await this.model.db.markInvalid(id.toString())
+          }
+
+          if (clipPromises.length == count) break
+        } catch (e) {
+          console.log(e.message)
+          console.log(`Storage error retrieving clip_id ${id}`)
           await this.model.db.markInvalid(id.toString())
         }
-
-        // this will break either when 10 clips have been retrieved or when 15 have been tried
-        // as long as at least 1 clip is returned, the next time the cache refills it will try
-        // for another 15
-        if (clipPromises.length == count) break
-      } catch (e) {
-        console.log(e.message)
-        console.log(`Storage error retrieving clip_id ${id}`)
-        await this.model.db.markInvalid(id.toString())
       }
+
     }
+
+
     Sentry.captureMessage(
       `Having a total of ${clipPromises.length} clips for ${locale} locale`,
       Sentry.Severity.Info
@@ -168,7 +181,7 @@ export default class Bucket {
     const bucket = getConfig().CLIP_BUCKET_NAME
     const passThrough = new PassThrough()
     const archive = archiver('zip', { zlib: { level: 6 } })
-    
+
     archive.pipe(passThrough)
 
     for (const path of paths) {
@@ -178,9 +191,8 @@ export default class Bucket {
         TE.map(buffer => ({ path, buffer })),
         TE.map(clip =>
           archive.append(clip.buffer, {
-            name: `takeout_${takeout.id}_pt_${chunkIndex}/${
-              path.split('/').length > 1 ? path.split('/')[1] : path
-            }`,
+            name: `takeout_${takeout.id}_pt_${chunkIndex}/${path.split('/').length > 1 ? path.split('/')[1] : path
+              }`,
           })
         )
       )()
@@ -242,3 +254,34 @@ export default class Bucket {
     )()
   }
 }
+
+
+// clips
+
+// {
+//   "id": 20,
+//   "client_id": "7993166b-5a1d-4c72-a104-648a21350d8c",
+//   "path": "7993166b-5a1d-4c72-a104-648a21350d8c/000f2d7c399933b9a51b204ffbc424bd59c4c0292c6e01d92d526bc50c0ea316.mp3",
+//   "sentence": "The vegetation on grey dunes is dependent on the pH of the soil substrate.",
+//   "original_sentence_id": "000f2d7c399933b9a51b204ffbc424bd59c4c0292c6e01d92d526bc50c0ea316",
+//   "created_at": "2024-07-02T05:08:10.000Z",
+//   "bucket": "train",
+//   "locale_id": 1,
+//   "needs_votes": 1,
+//   "is_valid": null,
+//   "validated_at": null,
+//   "duration": 6840
+// }
+
+
+// clipPromises
+
+// {
+//   "id": "20",
+//   "glob": "7993166b-5a1d-4c72-a104-648a21350d8c/000f2d7c399933b9a51b204ffbc424bd59c4c0292c6e01d92d526bc50c0ea316",
+//   "sentence": {
+//     "id": "000f2d7c399933b9a51b204ffbc424bd59c4c0292c6e01d92d526bc50c0ea316",
+//     "text": "The vegetation on grey dunes is dependent on the pH of the soil substrate."
+//   },
+//   "audioSrc": "http://localhost:8080/storage/v1/b/common-voice-clips/o/7993166b-5a1d-4c72-a104-648a21350d8c/000f2d7c399933b9a51b204ffbc424bd59c4c0292c6e01d92d526bc50c0ea316.mp3?alt=media"
+// }

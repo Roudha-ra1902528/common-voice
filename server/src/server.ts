@@ -74,6 +74,9 @@ export default class Server {
       ],
       environment: PROD ? 'prod' : 'stage',
       release: RELEASE_VERSION,
+
+
+  
     });
 
     const staticOptions = {

@@ -65,6 +65,7 @@ export default class Schema {
       DB_ROOT_USER,
       VERSION,
     } = getConfig();
+
     const dbMigrate = DBMigrate.getInstance(true, {
       config: {
         dev: {
@@ -80,11 +81,13 @@ export default class Schema {
         ? __dirname
         : path.resolve(path.join('server', __dirname)),
     });
+
     console.log(
       VERSION
         ? 'Running migrations for version ' + VERSION
         : 'Running migrations'
     );
+    
     await (VERSION ? dbMigrate.sync(VERSION) : dbMigrate.up());
   }
 }

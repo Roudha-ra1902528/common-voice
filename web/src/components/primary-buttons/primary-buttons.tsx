@@ -68,13 +68,16 @@ export const PlayButton = ({
   isPlaying: boolean;
   trackClass?: string;
 } & React.ButtonHTMLAttributes<any>) => (
+
   <PrimaryButton
     className={isPlaying ? 'stop' : 'play'}
     trackClass={trackClass}
     {...props}>
     {isPlaying ? <StopIcon /> : <OldPlayIcon />}
   </PrimaryButton>
+
 );
+
 
 export const PlayLink = (props: any) => (
   <PrimaryButton className="play" to={URLS.LISTEN} {...props} data-testid="play-link">

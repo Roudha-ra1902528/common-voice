@@ -1,3 +1,4 @@
+
 import { Action as ReduxAction, Dispatch } from 'redux';
 import StateTree from './tree';
 import { User } from './user';
@@ -68,7 +69,7 @@ export namespace Clips {
       showFirstStreakToast: boolean;
       hasEarnedSessionToast: boolean;
       challengeEnded: boolean;
-    };
+    }
   }
 
   enum ActionType {
@@ -113,79 +114,82 @@ export namespace Clips {
 
   export const actions = {
     refillCache:
-      () =>
-      async (
-        dispatch: Dispatch<RefillCacheAction | LoadAction | LoadErrorAction>,
-        getState: () => StateTree
-      ) => {
-        const state = getState();
+      (localeName?: string) =>
+        async (
+          dispatch: Dispatch<RefillCacheAction | LoadAction | LoadErrorAction>,
+          getState: () => StateTree
+        ) => {
+          const state = getState();
+          const clips = localeClips(state)?.clips
 
-        // don't load if no contributable locale
-        if (
-          state.languages &&
-          !state.languages.contributableLocales.includes(state.locale)
-        ) {
-          return;
-        }
+          // don't load if no contributable locale
+          // if (
+          //   state.languages &&
+          //   !state.languages.contributableLocales.includes(state.locale)
+          // ) {
+          //   console.log('in 1st if')
+          //   return;
+          // }
 
-        if (localeClips(state).clips.length >= MIN_CACHE_SIZE) {
-          return;
-        }
+          if (localeClips(state).clips.length >= MIN_CACHE_SIZE) {
+            console.log('in 2nd if')
+            return;
+          }
 
-        try {
-          dispatch({ type: ActionType.LOAD });
+          try {
+            dispatch({ type: ActionType.LOAD });
+            console.log(`${MIN_CACHE_SIZE} - ${localeClips(state).clips.length}`)
+            const randomClips = await state.api.fetchRandomClips(
+              MIN_CACHE_SIZE - localeClips(state).clips.length, localeName
+            );
 
-          const randomClips = await state.api.fetchRandomClips(
-            MIN_CACHE_SIZE - localeClips(state).clips.length
-          );
+            const clips = await removeClipsWithErrors(randomClips);
 
-          const clips = await removeClipsWithErrors(randomClips);
+            console.log("random " + JSON.stringify(clips))
 
-          dispatch({ type: ActionType.REFILL_CACHE, clips });
-        } catch (err) {
-          dispatch({ type: ActionType.LOAD_ERROR });
-          throw err;
-        }
-      },
+            dispatch({ type: ActionType.REFILL_CACHE, clips });
+          } catch (err) {
+            dispatch({ type: ActionType.LOAD_ERROR });
+            throw err;
+          }
+        },
 
     vote:
-      (isValid: boolean, clipId?: string) =>
-      async (
-        dispatch: Dispatch<Action | User.Action>,
-        getState: () => StateTree
-      ) => {
-        const state = getState();
-        const id = clipId;
+      (isValid: boolean, clipId?: string, transcription?: string) =>
+        async (
+          dispatch: Dispatch<Action | User.Action>,
+          getState: () => StateTree
+        ) => {
+          const state = getState();
+          const id = clipId;
 
-        dispatch({ type: ActionType.REMOVE_CLIP, clipId: id });
-        const {
-          showFirstContributionToast,
-          hasEarnedSessionToast,
-          showFirstStreakToast,
-          challengeEnded,
-        } = await state.api.saveVote(id, isValid);
-        if (!state.user.account) {
-          dispatch(User.actions.tallyVerification());
-        }
-        if (state.user?.account?.enrollment?.challenge) {
-          dispatch({
-            type: ActionType.ACHIEVEMENT,
-            showFirstContributionToast,
-            hasEarnedSessionToast,
-            showFirstStreakToast,
-            challengeEnded,
-          });
-        }
-        User.actions.refresh()(dispatch, getState);
-        actions.refillCache()(dispatch, getState);
-      },
+          dispatch({ type: ActionType.REMOVE_CLIP, clipId: id }); //remove clip from the redux state
+
+          const { showFirstContributionToast, hasEarnedSessionToast, showFirstStreakToast, challengeEnded } = await state.api.saveVote(id, isValid, transcription);
+
+          if (!state.user.account) {
+            dispatch(User.actions.tallyVerification());
+          }
+
+          if (state.user?.account?.enrollment?.challenge) {
+            dispatch({
+              type: ActionType.ACHIEVEMENT,
+              showFirstContributionToast,
+              hasEarnedSessionToast,
+              showFirstStreakToast,
+              challengeEnded,
+            });
+          }
+          User.actions.refresh()(dispatch, getState);
+          actions.refillCache()(dispatch, getState);
+        },
 
     remove:
       (clipId: string) =>
-      async (dispatch: Dispatch<Action>, getState: () => StateTree) => {
-        dispatch({ type: ActionType.REMOVE_CLIP, clipId });
-        actions.refillCache()(dispatch, getState);
-      },
+        async (dispatch: Dispatch<Action>, getState: () => StateTree) => {
+          dispatch({ type: ActionType.REMOVE_CLIP, clipId });
+          actions.refillCache()(dispatch, getState);
+        },
   };
 
   const DEFAULT_LOCALE_STATE = {
@@ -230,11 +234,15 @@ export namespace Clips {
         };
 
       case ActionType.REFILL_CACHE: {
-        const clips = localeState
-          ? action.clips
-            ? localeState.clips.concat(action.clips)
-            : localeState.clips
-          : [];
+        // const clips = localeState
+        //   ? action.clips
+        //     ? localeState.clips.concat(action.clips)
+        //     : localeState.clips
+        //   : [];
+
+        // const clips = localeState ? action.clips : []
+
+        const clips = localeState ? action.clips : []
 
         const filtered = clips.filter(
           (clip1, i) => clips.findIndex(clip2 => clip2.id === clip1.id) === i
@@ -277,7 +285,7 @@ export namespace Clips {
     }
   }
 
-  const localeClips = ({ locale, clips }: StateTree) => {
+  const localeClips = ({ locale , clips }: StateTree) => {
     if (!clips[locale]) {
       return DEFAULT_LOCALE_STATE;
     }
@@ -286,6 +294,6 @@ export namespace Clips {
   };
 
   export const selectors = {
-    localeClips,
+    localeClips
   };
 }

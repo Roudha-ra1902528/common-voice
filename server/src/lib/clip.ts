@@ -116,7 +116,9 @@ export default class Clip {
     response: Response
   ) => {
     const id = params.clipId as string;
-    const { isValid, challenge } = body;
+    const { isValid, challenge, transcription } = body;
+
+    console.log(`error here? ${id} and ${client_id} and ${body}`)
 
     if (!id || !client_id) {
       this.clipSaveError(
@@ -130,7 +132,7 @@ export default class Clip {
       return;
     }
 
-    const clip = await this.model.db.findClip(id);
+    const clip = await this.model.db.findClip(id); //'SELECT * FROM clips WHERE id = ? LIMIT 1', [id]
     if (!clip) {
       this.clipSaveError(
         headers,
@@ -141,11 +143,23 @@ export default class Clip {
         'vote'
       );
       return;
-    }
+    } 
+
+    //await this.model.db.saveVote(id, client_id, isValid);
+
+    // async saveVote(id: string, client_id: string, is_valid: string) {
+    //   await this.createOrVerifyUserClient(client_id);
+    //   await this.mysql.query(
+    //     `
+    //     INSERT INTO votes (clip_id, client_id, is_valid) VALUES (?, ?, ?)
+    //     ON DUPLICATE KEY UPDATE is_valid = VALUES(is_valid)
+    //   `,
+    //     [id, client_id, is_valid ? 1 : 0]
+    //   );
 
     const glob = clip.path.replace('.mp3', '');
 
-    await this.model.db.saveVote(id, client_id, isValid);
+    await this.model.db.saveVote(id, client_id, isValid, transcription);
     await Awards.checkProgress(client_id, { id: clip.locale_id });
     await checkGoalsAfterContribution(client_id, { id: clip.locale_id });
     // move it to the last line and leave a trace here in case of serious performance issues
@@ -347,6 +361,8 @@ export default class Clip {
       params.locale,
       count
     ).then(this.appendMetadata);
+
+    // console.log(clips)
 
     response.json(clips);
   };

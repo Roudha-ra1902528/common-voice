@@ -205,39 +205,7 @@ export default class DB {
     return rows;
   }
 
-  /**
-   * Get valid and random clips per language
-   * @param languageId
-   * @param limit
-   * @returns
-   */
-  async getClipsToBeValidated(
-    languageId: number,
-    limit: number
-  ): Promise<DBClip[]> {
-    const [rows] = await this.mysql.query(
-      `
-        SELECT 
-          c.id as id, 
-          c.path as path, 
-          s.has_valid_clip as has_valid_clip,
-          c.client_id as client_id, 
-          s.text as sentence,
-          c.original_sentence_id as original_sentence_id
-        FROM clips c
-        INNER JOIN 
-          sentences s ON s.id = c.original_sentence_id 
-          AND c.locale_id = ? 
-        WHERE 
-          c.is_valid IS NULL 
-        ORDER BY RAND()
-        LIMIT ?
-      `,
-      [languageId, limit]
-    );
 
-    return rows;
-  }
 
   async getClipCount(): Promise<number> {
     return this.clip.getCount();
@@ -314,11 +282,11 @@ export default class DB {
       taxonomySentences.length >= count
         ? []
         : await this.findSentencesWithFewClips(
-            client_id,
-            locale_id,
-            count - taxonomySentences.length,
-            exemptFromSSRL
-          );
+          client_id,
+          locale_id,
+          count - taxonomySentences.length,
+          exemptFromSSRL
+        );
 
     const totalSentences = taxonomySentences.concat(regularSentences);
 
@@ -454,36 +422,29 @@ export default class DB {
     count: number
   ): Promise<DBClip[]> {
     Sentry.captureMessage(`Find clips needing validation for ${locale} locale`, Sentry.Severity.Info)
-    let taxonomySentences: DBClip[] = [];
     const locale_id = await getLocaleId(locale);
     const exemptFromSSRL = !SINGLE_SENTENCE_LIMIT.includes(locale);
 
-    const prioritySegments = this.getPrioritySegments(locale);
+    //removed taxonomySentences
 
-    if (prioritySegments.length) {
-      taxonomySentences = await this.findClipsMatchingTaxonomy(
-        client_id,
-        locale_id,
-        count,
-        prioritySegments
-      );
-      Sentry.captureMessage(`There are ${prioritySegments.length} priority segments for ${locale} locale`, Sentry.Severity.Info)
-    } else {
-      Sentry.captureMessage(`There are 0 priority segments for ${locale} locale`, Sentry.Severity.Info)
-    }
+    const regularSentences = await this.findClipsWithFewVotes(
+      client_id,
+      locale_id,
+      count,
+      exemptFromSSRL
+    );
 
-    const regularSentences =
-      taxonomySentences.length >= count
-        ? []
-        : await this.findClipsWithFewVotes(
-            client_id,
-            locale_id,
-            count - taxonomySentences.length,
-            exemptFromSSRL
-          );
+    Sentry.captureMessage(`There are ${regularSentences.length} regular sentences for ${locale} locale`, Sentry.Severity.Info)
+    // console.log(`
+    //   In async findClipsNeedingValidation()\n
 
-    Sentry.captureMessage(`There are ${regularSentences.length} regular sentences for ${locale} locale`, Sentry.Severity.Info)     
-    return taxonomySentences.concat(regularSentences);
+    //   clientId: ${client_id}\n
+    //   locale: ${locale}\n
+    //   count: ${count}\n
+
+    //   regularSentences: ${regularSentences.map(s => `${s.sentence}\n`)}
+    //   `)
+    return regularSentences
   }
 
   async findClipsWithFewVotes(
@@ -492,6 +453,17 @@ export default class DB {
     count: number,
     exemptFromSSRL?: boolean
   ): Promise<DBClip[]> {
+
+    //   type DBClip = {
+    //     id: number;
+    //     client_id: string;
+    //     path: string;
+    //     sentence: string;
+    //     original_sentence_id: string;
+    //     has_valid_clip?: number;
+    //     taxonomy?: TaxonomyType;
+    // }
+
     // get cached clips for given language
     const cachedClips: DBClip[] = await lazyCache(
       `new-clips-per-language-${locale_id}`,
@@ -507,7 +479,7 @@ export default class DB {
     );
 
     // potentially cache-able
-    // get users previously interacted clip ids
+    // get users previously interacted clip ids - get clipIds of votes, reported, and skipped
     const [submittedUserClipIds] = await this.mysql.query(
       `
       SELECT clip_id
@@ -539,52 +511,161 @@ export default class DB {
       })
     );
 
+    // console.log(
+    //   `
+    //   -----
+    //   validClips Set \n
+    //   ${JSON.stringify(validClips)}
+    //   -----
+    //   `
+    // )
+
     if (validClips.size > count) {
       Sentry.captureMessage(`Returning ${validClips.size} valid clips from cache for locale id ${locale_id}`, Sentry.Severity.Info)
       return Array.from(validClips);
     }
 
+    //filter clips based on the language, excluding clients own clips, sentences with clips that are below 15, and which the user has not interacted with (voted, reported, skipped)
+    // ** FOR OUR PURPOSES: voted, category?, 
+    // const [clips] = await this.mysql.query(
+    //   `
+    //   SELECT *
+    //   FROM (
+    //     SELECT clips.*
+    //     FROM clips
+    //     LEFT JOIN sentences on clips.original_sentence_id = sentences.id
+    //     WHERE 
+    //     is_valid IS NULL 
+    //     AND clips.locale_id = ? 
+    //     AND client_id <> ?
+    //     AND sentences.clips_count <= 15
+    //     AND NOT EXISTS(
+    //       SELECT clip_id
+    //       FROM votes
+    //       WHERE votes.clip_id = clips.id AND client_id = ?
+    //       UNION ALL
+    //       SELECT clip_id
+    //       FROM reported_clips reported
+    //       WHERE reported.clip_id = clips.id AND client_id = ?
+    //       UNION ALL
+    //       SELECT clip_id
+    //       FROM skipped_clips skipped
+    //       WHERE skipped.clip_id = clips.id AND client_id = ?
+    //     )
+    //     ${exemptFromSSRL ? '' : 'AND sentences.has_valid_clip = 0'}
+    //     ORDER BY sentences.clips_count ASC, clips.created_at ASC
+    //     LIMIT ?
+    //   ) t
+    //   ORDER BY RAND()
+    //   LIMIT ?`,
+    //   [
+    //     locale_id,
+    //     client_id,
+    //     client_id,
+    //     client_id,
+    //     client_id,
+    //     SHUFFLE_SIZE,
+    //     count,
+    //   ]
+    // );
+
     const [clips] = await this.mysql.query(
       `
       SELECT *
       FROM (
-        SELECT clips.*
-        FROM clips
-        LEFT JOIN sentences on clips.original_sentence_id = sentences.id
-        WHERE is_valid IS NULL AND clips.locale_id = ? AND client_id <> ?
+        SELECT c.*
+        FROM clips c
+        WHERE 
+        c.locale_id = ? 
+        AND client_id <> ?
+        AND c.validation_count < 2
+        AND c.version = (
+        SELECT MAX(version)
+        FROM clips c2
+        WHERE c2.path = c.path
+        )
         AND NOT EXISTS(
           SELECT clip_id
           FROM votes
-          WHERE votes.clip_id = clips.id AND client_id = ?
-          UNION ALL
-          SELECT clip_id
-          FROM reported_clips reported
-          WHERE reported.clip_id = clips.id AND client_id = ?
-          UNION ALL
-          SELECT clip_id
-          FROM skipped_clips skipped
-          WHERE skipped.clip_id = clips.id AND client_id = ?
+          WHERE votes.clip_id = c.id AND client_id = ?
         )
-        AND sentences.clips_count <= 15
-        ${exemptFromSSRL ? '' : 'AND sentences.has_valid_clip = 0'}
-        ORDER BY sentences.clips_count ASC, clips.created_at ASC
-        LIMIT ?
       ) t
-      ORDER BY RAND()
       LIMIT ?`,
       [
         locale_id,
         client_id,
         client_id,
-        client_id,
-        client_id,
-        SHUFFLE_SIZE,
         count,
       ]
     );
 
+    // console.log(
+    //   `
+    //   -----
+    //   clips_v3 in db.ts \n
+    //   ${JSON.stringify(clips)}
+    //   -----
+    //   `
+    // )
+
+      // ORDER BY RAND()
+      // LIMIT ?`,
+
     Sentry.captureMessage(`Returning ${clips.length} clips with few votes for locale id ${locale_id}`, Sentry.Severity.Info)
     return clips as DBClip[];
+  }
+
+
+  async getClientLanguages(
+    client_id: string,
+  ): Promise<string[]> {
+
+    const [langRows] = await this.mysql.query(
+      `
+      SELECT language
+      FROM client_language
+      WHERE client_id = ?
+      `,
+      [client_id]
+    );
+
+    const languages = langRows.map((row: { language: string; }) => row.language);
+
+    return languages;
+  }
+
+  /**
+ * Get valid and random clips per language
+ * @param languageId
+ * @param limit
+ * @returns
+ */
+  async getClipsToBeValidated(
+    languageId: number,
+    limit: number
+  ): Promise<DBClip[]> {
+    const [rows] = await this.mysql.query(
+      `
+          SELECT 
+            c.id as id, 
+            c.path as path, 
+            s.has_valid_clip as has_valid_clip,
+            c.client_id as client_id, 
+            s.text as sentence,
+            c.original_sentence_id as original_sentence_id
+          FROM clips c
+          INNER JOIN 
+            sentences s ON s.id = c.original_sentence_id 
+            AND c.locale_id = ? 
+          WHERE 
+            c.is_valid IS NULL 
+          ORDER BY RAND()
+          LIMIT ?
+        `,
+      [languageId, limit]
+    );
+
+    return rows;
   }
 
   async findClipsMatchingTaxonomy(
@@ -704,70 +785,133 @@ export default class DB {
     );
   }
 
-  async saveVote(id: string, client_id: string, is_valid: string) {
+  async saveVote(id: string, client_id: string, is_valid: string, transcription: string) {
     await this.createOrVerifyUserClient(client_id);
     await this.mysql.query(
       `
-      INSERT INTO votes (clip_id, client_id, is_valid) VALUES (?, ?, ?)
+      INSERT INTO votes (clip_id, client_id, is_valid, transcription) VALUES (?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE is_valid = VALUES(is_valid)
     `,
-      [id, client_id, is_valid ? 1 : 0]
+      [id, client_id, is_valid ? 1 : 0, transcription]
     );
 
-    await this.mysql.query(
-      `
-        /** Update the following:
-         *
-         *  updated_clips.is_valid:
-         *    TRUE if it's been decided that it's a good clip.
-         *    FALSE if it's been decided that it's a bad clip.
-         *    NULL if it hasn't received enough votes yet.
-         *
-         *  updated_clips.validated_at:
-         *    The last time is_valid changed, or NULL if is_valid is NULL.
-         */
-        UPDATE clips updated_clips
-        /* This join allows us to determine a clip's is_valid status once, then
-           use it to set multiple column values later. */
-        INNER JOIN (
-          SELECT
-            id,
-            CASE
-              WHEN counts.upvotes >= 2 AND counts.upvotes > counts.downvotes
-                THEN TRUE
-              WHEN counts.downvotes >= 2 AND counts.downvotes > counts.upvotes
-                THEN FALSE
-              ELSE NULL
-            END as is_valid
-          FROM (
-            SELECT
-              clips.id AS id,
-              COALESCE(SUM(votes.is_valid), 0)     AS upvotes,
-              COALESCE(SUM(NOT votes.is_valid), 0) AS downvotes
-            FROM clips
-            LEFT JOIN votes ON clips.id = votes.clip_id
-            WHERE clips.id = ${id}
-            GROUP BY clips.id
-          ) counts
-        ) t ON updated_clips.id = t.id
-        /* updated_clips.validated_at will only update when is_valid changes.
-           The comparison is messy since we can't use <> directly on NULL. */
-        SET updated_clips.validated_at = IF(
-              IFNULL(t.is_valid, 2) <> IFNULL(updated_clips.is_valid, 2),  -- Cast NULL to 2 for the comparison.
-              IF(ISNULL(t.is_valid), NULL, NOW()),  -- If is_valid has changed, update validated_at…
-              updated_clips.validated_at            -- …otherwise, leave it the same.
-            ),
-            updated_clips.is_valid = t.is_valid
-        WHERE updated_clips.id = ${id}
-      `
-    );
+    if (is_valid) {
+      await this.mysql.query(
+        `
+        UPDATE clips
+        SET validation_count = CASE
+            WHEN validation_count = 0 THEN 1
+            ELSE validation_count + 1
+        END
+        WHERE id = ?; 
+      `,
+        [id]
+      );
+    } else {
+      const [rows] = await this.mysql.query(
+        `
+        SELECT *
+        FROM clips
+        WHERE id = ?;
+        `,
+        [id]
+      );
 
-    await this.mysql.query(
-      `UPDATE sentences
-        SET has_valid_clip = EXISTS (SELECT * FROM clips WHERE original_sentence_id = ? AND is_valid = 1 LIMIT 1)
-          WHERE id = ?`,
-      [id, id]
-    );
+      if (rows.length === 0) throw new Error('No record found with the specified id');
+      const row = rows[0];
+
+      console.log(row[0])
+
+      await this.mysql.query(
+        `
+        INSERT INTO clips (
+          client_id, 
+          path, 
+          sentence, 
+          original_sentence_id, 
+          created_at, 
+          bucket, 
+          locale_id, 
+          needs_votes, 
+          is_valid, 
+          validated_at, 
+          duration, 
+          validation_count, 
+          version
+      ) VALUES (?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, 0, ?)
+      `,
+        [
+          client_id,
+          row.path,
+          transcription,
+          row.original_sentence_id,
+          row.bucket,
+          row.locale_id,
+          row.needs_votes,
+          row.is_valid,
+          row.validated_at,
+          row.duration,
+          row.version == 0 ? 1 : row.version + 1
+        ]
+      );
+    }
+
+    // await this.mysql.query(
+    //   `
+    //     /** Update the following:
+    //      *
+    //      *  updated_clips.is_valid:
+    //      *    TRUE if it's been decided that it's a good clip.
+    //      *    FALSE if it's been decided that it's a bad clip.
+    //      *    NULL if it hasn't received enough votes yet.
+    //      *
+    //      *  updated_clips.validated_at:
+    //      *    The last time is_valid changed, or NULL if is_valid is NULL.
+    //      */
+    //     UPDATE clips updated_clips
+    //     /* This join allows us to determine a clip's is_valid status once, then
+    //        use it to set multiple column values later. */
+    //     INNER JOIN (
+    //       SELECT
+    //         id,
+    //         CASE
+    //           WHEN counts.upvotes >= 2 AND counts.upvotes > counts.downvotes
+    //             THEN TRUE
+    //           WHEN counts.downvotes >= 2 AND counts.downvotes > counts.upvotes
+    //             THEN FALSE
+    //           ELSE NULL
+    //         END as is_valid
+    //       FROM (
+    //         SELECT
+    //           clips.id AS id,
+    //           COALESCE(SUM(votes.is_valid), 0)     AS upvotes,
+    //           COALESCE(SUM(NOT votes.is_valid), 0) AS downvotes
+    //         FROM clips
+    //         LEFT JOIN votes ON clips.id = votes.clip_id
+    //         WHERE clips.id = ${id}
+    //         GROUP BY clips.id
+    //       ) counts
+    //     ) t ON updated_clips.id = t.id
+
+    //     /* updated_clips.validated_at will only update when is_valid changes.
+    //        The comparison is messy since we can't use <> directly on NULL. */
+
+    //     SET updated_clips.validated_at = IF(
+    //           IFNULL(t.is_valid, 2) <> IFNULL(updated_clips.is_valid, 2),  -- Cast NULL to 2 for the comparison.
+    //           IF(ISNULL(t.is_valid), NULL, NOW()),  -- If is_valid has changed, update validated_at…
+    //           updated_clips.validated_at            -- …otherwise, leave it the same.
+    //         ),
+    //         updated_clips.is_valid = t.is_valid
+    //     WHERE updated_clips.id = ${id}
+    //   `
+    // );
+
+    // await this.mysql.query(
+    //   `UPDATE sentences
+    //     SET has_valid_clip = EXISTS (SELECT * FROM clips WHERE original_sentence_id = ? AND is_valid = 1 LIMIT 1)
+    //       WHERE id = ?`,
+    //   [id, id]
+    // );
   }
 
   async saveClip({
@@ -880,8 +1024,7 @@ export default class DB {
             `
               SELECT COUNT(*) AS total, ${to} AS date
               FROM clips
-              WHERE created_at BETWEEN ${from} AND ${to} ${
-              locale ? 'AND locale_id = ?' : ''
+              WHERE created_at BETWEEN ${from} AND ${to} ${locale ? 'AND locale_id = ?' : ''
             }
             `,
             [localeId]
@@ -954,8 +1097,8 @@ export default class DB {
           FROM (
             SELECT (TIMESTAMP(DATE_FORMAT(NOW(), '%Y-%m-%d %H:00')) - INTERVAL hour HOUR) AS date
             FROM (${hours
-              .map(i => `SELECT ${i} AS hour`)
-              .join(' UNION ')}) hours
+        .map(i => `SELECT ${i} AS hour`)
+        .join(' UNION ')}) hours
           ) date_alias
           LEFT JOIN (
             SELECT created_at
@@ -1442,3 +1585,47 @@ export default class DB {
     return !!row;
   }
 }
+
+
+
+// const prioritySegments = this.getPrioritySegments(locale);
+
+// if (prioritySegments.length) {
+//   taxonomySentences = await this.findClipsMatchingTaxonomy(
+//     client_id,
+//     locale_id,
+//     count,
+//     prioritySegments
+//   );
+//   Sentry.captureMessage(`There are ${prioritySegments.length} priority segments for ${locale} locale`, Sentry.Severity.Info)
+// } else {
+//   Sentry.captureMessage(`There are 0 priority segments for ${locale} locale`, Sentry.Severity.Info)
+// }
+
+
+
+
+
+
+// const [clips] = await this.mysql.query(
+//   `
+//   SELECT *
+//   FROM (
+//     SELECT clips.*
+//     FROM clips
+//     WHERE
+//     clips.locale_id = ?
+//     AND NOT EXISTS(
+//       SELECT clip_id
+//       FROM votes
+//       WHERE votes.clip_id = clips.id AND client_id = ?
+//     )
+//   ) t
+//   ORDER BY RAND()
+//   LIMIT ?`,
+//   [
+//     locale_id,
+//     client_id,
+//     count,
+//   ]
+// );

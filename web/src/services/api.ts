@@ -132,10 +132,15 @@ export default class API {
   //   audioSrc: string;
   // };
 
-  async fetchRandomClips(count = 1): Promise<Clip[]> {
-    return this.fetch(`${this.getClipPath()}?count=${count}`)
+  async fetchRandomClips(count = 1, localeName: string = 'en'): Promise<Clip[]> {
+    // console.log(`${this.getClipPath()}?count=${count}`)
+    // return this.fetch(`${this.getClipPath()}?count=${count}`)
+    return this.fetch(`${API_PATH}/${localeName}/clips?count=${count}`)
   }
 
+  async fetchClientLanguages(): Promise<string[]> {
+    return this.fetch(`${API_PATH}/language`)
+  }
 
   uploadClip(
     blob: Blob,
@@ -161,12 +166,19 @@ export default class API {
     })
   }
   
-  saveVote(id: string, isValid: boolean): Promise<Vote> {
-    return this.fetch(`${this.getClipPath()}/${id}/votes`, {
+  // when user votes down
+  // saveVote in services/apis with clipId: 23 - isValid: false
+
+  // when user votes up
+  // saveVote in services/apis with clipId: 22 - isValid: true
+  saveVote(clipId: string, isValid: boolean, transcription: string): Promise<Vote> {
+    console.log(`saveVote in services/apis with clipId: ${clipId} - isValid: ${isValid}`)
+    return this.fetch(`${this.getClipPath()}/${clipId}/votes`, {
       method: 'POST',
       body: {
         isValid,
         challenge: getChallenge(this.user),
+        transcription
       },
     })
   }

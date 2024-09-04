@@ -44,9 +44,9 @@ interface PropsFromDispatch {
 
 interface LayoutProps
   extends PropsFromState,
-    PropsFromDispatch,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    RouteComponentProps<any, any, any> {
+  PropsFromDispatch,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  RouteComponentProps<any, any, any> {
   children?: React.ReactNode;
   shouldHideFooter?: boolean;
 }
@@ -142,7 +142,8 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
   private handleLocaleChange = async (locale: string) => {
     const { history } = this.props;
     trackGlobal('change-language', locale);
-    history.push(replacePathLocale(history.location.pathname, locale));
+    // this.props.setLocale(locale);
+    // history.push(replacePathLocale(history.location.pathname, locale));
   };
 
   private getChallengeToken = () => {
@@ -213,9 +214,10 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
           className={cx('header-wrapper', {
             'contribution-page-active': isContributionPageActive,
           })}>
+
           <header className={cx('header', { active: hasScrolled })}>
             <div>
-              {isContributionPageActive && (
+              {/* {isContributionPageActive && (
                 <MenuIcon
                   onClick={handleMenuIconClick}
                   className={cx(
@@ -232,8 +234,8 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
                     'mobile-menu-icon'
                   )}
                 />
-              )}
-              <Logo />
+              )} */}
+              {/* <Logo /> */}
               <Nav
                 id="main-nav"
                 shouldExpandNavItems={
@@ -241,10 +243,18 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
                 }
                 isContributionPageActive={isContributionPageActive}
               />
+              <LinkButton className="listen"
+                href="/en/listen"
+                outline
+                style={{border: 'none', height: "50px", width: "10px", padding: '0', paddingTop: '5px', fontSize: '15px'}}
+                >
+                LISTEN
+              </LinkButton>
             </div>
+
             <div>
               <div className="hidden-sm-down">
-                <DonateButton shouldApplyRightMargin={!user.account} />
+                {/* <DonateButton shouldApplyRightMargin={!user.account} /> */}
               </div>
               {user.account ? (
                 <UserMenu />
@@ -259,10 +269,10 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
                   />
                 </Localized>
               )}
-              <LocalizationSelectComplex
+              {/* <LocalizationSelectComplex
                 locale={locale}
                 onLocaleChange={this.handleLocaleChange}
-              />
+              /> */}
               <button
                 id="hamburger-menu"
                 className={classNames({
@@ -281,7 +291,7 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
               </button>
             </div>
           </header>
-          {isContributionPageActive && (
+          {/* {isContributionPageActive && (
             <SecondaryNav
               handleSecondaryNavMobileMenuClick={
                 handleSecondaryNavMobileMenuClick
@@ -289,9 +299,9 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
               isDemoMode={isDemoMode}
               isLoggedIn={Boolean(user.account)}
             />
-          )}
+          )} */}
         </div>
-        <NonProductionBanner />
+        {/* <NonProductionBanner /> */}
         <main
           id="content"
           className={className}
@@ -341,9 +351,9 @@ class Layout extends React.PureComponent<LayoutProps, LayoutState> {
                 </Localized>
               )}
 
-              <div className="donate-btn-container">
+              {/* <div className="donate-btn-container">
                 <DonateButton />
-              </div>
+              </div> */}
             </div>
           </Nav>
         </div>

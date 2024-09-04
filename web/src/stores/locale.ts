@@ -29,10 +29,10 @@ export namespace Locale {
       },
   };
 
-  export function reducer(state: State = null, action: Action): State {
+  export function reducer(state: State = 'en', action: Action): State {
     switch (action.type) {
       case ActionType.SET:
-        return action.locale;
+        return state;
 
       default:
         return state;

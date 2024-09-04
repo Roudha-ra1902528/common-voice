@@ -46,7 +46,8 @@ const Nav: React.FC<NavProps> = ({
 
   return (
     <nav {...props} className="nav-list">
-      <div className="nav-links">
+      <h1>ValidateAudios</h1>
+      {/* <div className="nav-links">
         <ContributeMenu
           showMenu={showMenu}
           setShowMenu={setShowMenu}
@@ -64,7 +65,7 @@ const Nav: React.FC<NavProps> = ({
             <LocalizedNavLink id="about" to={URLS.ABOUT} />
           </>
         </div>
-      </div>
+      </div> */}
       {children}
     </nav>
   )

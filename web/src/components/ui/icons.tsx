@@ -835,8 +835,8 @@ export const ThumbsDownIcon = (props: any) => (
   </svg>
 )
 
-export const ThumbsUpIcon = (props: any) => (
-  <svg width="24" height="24" viewBox="0 0 24 24">
+export const ThumbsUpIcon = ({ size = "24", ...props }) => (
+  <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
     <defs>
       <path
         id="thumbs-up-path"

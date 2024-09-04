@@ -538,6 +538,7 @@ const UserClient = {
     email: string,
     { client_id, languages, ...data }: UserClientType
   ): Promise<UserClientType> {
+    
     const [accountClientId, [clients]] = await Promise.all([
       UserClient.findClientId(email),
       email

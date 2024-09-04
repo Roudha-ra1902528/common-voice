@@ -2,8 +2,68 @@
     --vote-button-box-shadow: 0 5px 10px;
 }
 
+.dropdown-container {
+    color: #727272;
+    width: 100px;              /* Set width for the dropdown */
+    position: relative;        /* Position relative for dropdown positioning */
+    border: 1px solid #ebebeb;    /* Border for card-like appearance */
+    background-color: #fff;    /* Background color for card */
+    margin: 15px;         /* Center horizontally and add some margin */
+  }
+  
+  .dropdown-header {
+    width: 100%;               /* Full width of the container */
+    padding: 12px;             /* Padding inside the header for a square look */
+    cursor: pointer;           /* Pointer cursor to indicate interactivity */
+    display: flex;             /* Flexbox for content alignment */
+    justify-content: space-between; /* Space between text and arrow */
+    align-items: center;       /* Center items vertically */
+  }
+  
+  .arrow {
+    font-size: 12px;            /* Reduce font size to make arrow smaller */
+    transition: transform 0.3s; /* Smooth transition for arrow rotation */
+    margin-left: 10px;          /* Adjust spacing between text and arrow */
+    line-height: 1;             /* Ensures the arrow aligns well with the text */
+  }
+  
+  .arrow.open {
+    transform: rotate(180deg);  /* Rotate arrow when dropdown is open */
+  }
+  
+  .dropdown-list {
+    position: absolute;         /* Position absolute for dropdown */
+    top: 100%;                  /* Position right below the header */
+    left: -1px;
+    right: -1px;
+    border: 1px solid #ebebeb;
+    background-color: #fff;     /* Same background color as the card */
+    list-style-type: none;      /* Remove default list styling */
+    padding: 0;                 /* Remove default padding */
+    margin: 0;                 /* Remove default margin */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for dropdown */
+    z-index: 10;                /* Ensure it appears above other elements */
+  }
+  
+  .dropdown-list-item {
+    padding: 12px;              /* Padding for each list item */
+    cursor: pointer;            /* Pointer cursor for interactivity */
+    transition: background-color 0.3s; /* Smooth transition for hover effect */
+  }
+  
+  .dropdown-list-item:hover {
+    background-color: #f0f0f0; /* Background color change on hover */
+  }
+  
+
+
+
 #listen-page {
     width: 100%;
+}
+
+textarea:focus {
+    border: '1px solid green'
 }
 
 .contribution.listen {
@@ -71,26 +131,22 @@
         }
 
         &.yes {
-            box-shadow: var(--vote-button-box-shadow)
-                color-mod(var(--valid-green) alpha(30%));
+            box-shadow: var(--vote-button-box-shadow) color-mod(var(--valid-green) alpha(30%));
 
             &:hover,
             &:active {
                 background: var(--valid-green);
-                box-shadow: var(--vote-button-box-shadow)
-                    color-mod(var(--valid-green) alpha(70%));
+                box-shadow: var(--vote-button-box-shadow) color-mod(var(--valid-green) alpha(70%));
             }
         }
 
         &.no {
-            box-shadow: var(--vote-button-box-shadow)
-                color-mod(var(--red) alpha(20%));
+            box-shadow: var(--vote-button-box-shadow) color-mod(var(--red) alpha(20%));
 
             &:hover,
             &:active {
                 background: var(--red);
-                box-shadow: var(--vote-button-box-shadow)
-                    color-mod(var(--red) alpha(60%));
+                box-shadow: var(--vote-button-box-shadow) color-mod(var(--red) alpha(60%));
             }
         }
 
@@ -111,8 +167,7 @@
         &.no:disabled {
             color: var(--near-black);
             background: var(--white);
-            box-shadow: var(--vote-button-box-shadow)
-                color-mod(var(--grey) alpha(80%));
+            box-shadow: var(--vote-button-box-shadow) color-mod(var(--grey) alpha(80%));
 
             &:hover {
                 path {

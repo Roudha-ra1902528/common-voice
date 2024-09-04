@@ -1,4 +1,3 @@
-// 
 import { Localized } from '@fluent/react';
 import * as React from 'react';
 import { connect } from 'react-redux';
@@ -38,6 +37,7 @@ import Modal, { ModalButtons } from '../../../modal/modal'
 
 import './listen.css'
 import ClipsContainer from './ClipsContainer';
+import LanguageSelect from './LanguageSelect';
 
 const VOTE_NO_PLAY_MS = 3000 // Threshold when to allow voting no
 
@@ -92,6 +92,8 @@ interface State {
   hasPlayedSome: boolean
   isPlaying: boolean
   isSubmitted: boolean
+  votedNo: boolean
+  errorMessage: boolean
 }
 
 const initialState: State = {
@@ -100,7 +102,20 @@ const initialState: State = {
   hasPlayedSome: false,
   isPlaying: false,
   isSubmitted: false,
+  votedNo: false,
+  errorMessage: false
 }
+
+interface Language {
+  id: number;
+  code: string; // The two-letter language code
+}
+
+const languages: Language[] = [
+  { id: 0, code: 'en' },
+  { id: 1, code: 'ar' },
+  // Add more languages
+];
 
 class ListenPage extends React.Component<Props, State> {
   audioRef = React.createRef<HTMLAudioElement>()
@@ -110,7 +125,15 @@ class ListenPage extends React.Component<Props, State> {
   demoMode = this.props.location.pathname.includes(URLS.DEMO)
 
   static getDerivedStateFromProps(props: Props, state: State) {
-    if (state.clips.length > 0) return null
+    if (JSON.stringify(props.clips) != JSON.stringify(state.clips)) {
+      return {
+        clips: props.clips
+          .slice(0, SET_COUNT)
+          .map(clip => ({ ...clip, isValid: null })),
+      }
+    }
+
+    if (state.clips.length > 0) return null // if there are clips, dont update state
 
     if (props.clips && props.clips.length > 0) {
       return {
@@ -123,9 +146,12 @@ class ListenPage extends React.Component<Props, State> {
     return null
   }
 
-  componentDidMount(): void {
+  componentDidMount() {
     const { loadClips } = this.props
-    loadClips()
+
+    const lang = sessionStorage.getItem('language') ?? 'en'
+    loadClips(lang)
+
   }
 
   componentWillUnmount() {
@@ -134,7 +160,7 @@ class ListenPage extends React.Component<Props, State> {
   }
 
   private getClipIndex() {
-    return this.state.clips.findIndex(clip => clip.isValid === null)
+    return this.state.clips.findIndex(clip => clip.isValid === null) //voted
   }
 
   private play = () => {
@@ -146,6 +172,7 @@ class ListenPage extends React.Component<Props, State> {
     this.audioRef.current.play()
     this.setState({ isPlaying: true })
     clearInterval(this.playedSomeInterval)
+
     this.playedSomeInterval = setInterval(
       () => this.setState({ hasPlayedSome: true }),
       VOTE_NO_PLAY_MS
@@ -167,65 +194,22 @@ class ListenPage extends React.Component<Props, State> {
     trackListening('listen', this.props.locale)
   }
 
-  private vote = (isValid: boolean) => {
+  private vote = (isValid: boolean, transcription?: string) => {
     const { clips } = this.state
-
-    const {
-      showFirstContributionToast,
-      hasEarnedSessionToast,
-      addAchievement,
-      api,
-      showFirstStreakToast,
-      challengeEnded,
-    } = this.props
-    const clipIndex = this.getClipIndex()
+    const clipIndex = this.getClipIndex() // voted
 
     this.stop()
-    this.props.vote(isValid, this.state.clips[this.getClipIndex()].id)
+    this.props.vote(isValid, this.state.clips[this.getClipIndex()].id, transcription ?? this.state.clips[this.getClipIndex()].sentence.text) //used to call db operation on votes table
 
-    try {
-      sessionStorage.setItem('challengeEnded', JSON.stringify(challengeEnded))
-      sessionStorage.setItem('hasContributed', 'true')
-    } catch (e) {
-      console.warn(`A sessionStorage error occurred ${e.message}`)
-    }
-
-    if (showFirstContributionToast) {
-      addAchievement(
-        50,
-        "You're on your way! Congrats on your first contribution.",
-        'success'
-      )
-    }
-    if (showFirstStreakToast) {
-      addAchievement(
-        50,
-        'You completed a three-day streak! Keep it up.',
-        'success'
-      )
-    }
-    if (
-      !JSON.parse(sessionStorage.getItem('challengeEnded')) &&
-      JSON.parse(sessionStorage.getItem('hasShared')) &&
-      !hasEarnedSessionToast
-    ) {
-      addAchievement(
-        50,
-        "You're on a roll! You sent an invite and contributed in the same session.",
-        'success'
-      )
-      sessionStorage.removeItem('hasShared')
-      // Tell back-end user get unexpected achievement: invite + contribute in the same session
-      // Each user can only get once.
-      api.setInviteContributeAchievement()
-    }
+    //setting the state changes the UI to move on to the next clip
     this.setState({
+      votedNo: false,
       hasPlayed: false,
       hasPlayedSome: false,
       isPlaying: false,
       isSubmitted: clipIndex === SET_COUNT - 1,
       clips: clips.map((clip, i) =>
-        i === clipIndex ? { ...clip, isValid } : clip
+        i === clipIndex ? { ...clip, isValid } : clip,
       ),
     })
   }
@@ -234,6 +218,7 @@ class ListenPage extends React.Component<Props, State> {
     if (!this.state.hasPlayed) {
       return
     }
+
     this.vote(true)
     trackListening('vote-yes', this.props.locale)
   }
@@ -243,7 +228,8 @@ class ListenPage extends React.Component<Props, State> {
     if (!hasPlayed && !hasPlayedSome) {
       return
     }
-    this.vote(false)
+
+    this.setState({ votedNo: true })
     trackListening('vote-no', this.props.locale)
   }
 
@@ -298,10 +284,25 @@ class ListenPage extends React.Component<Props, State> {
     this.setAbortContributionModalVisiblity(false)
   }
 
+  private handleSubmit = (text: string) => {
+    if (text.trim() === '') {
+      this.setState({ errorMessage: true });
+    } else {
+      this.vote(false, text)
+      this.setState({ votedNo: false })
+    }
+  };
+
+  private handleResetVote = () => { this.setState({ votedNo: false }) }
+
+  private handleLanguageSelect = (language: string) => {
+    const { loadClips } = this.props
+    loadClips(language)
+  };
+
   render() {
-    const { isLoading, hasLoadingError, user, locale } = this.props;
-    const { clips, hasPlayed, hasPlayedSome, isPlaying, isSubmitted } =
-      this.state;
+    const { isLoading, hasLoadingError, user, locale, api } = this.props;
+    const { clips, hasPlayed, hasPlayedSome, isPlaying, isSubmitted, votedNo, errorMessage } = this.state;
     const clipIndex = this.getClipIndex();
     const activeClip = clipIndex >= 0 ? clips[clipIndex] : null
     const noClips = clips.length === 0;
@@ -311,20 +312,32 @@ class ListenPage extends React.Component<Props, State> {
     );
     const isVariantPreferredOption = currentLocale?.variant?.is_preferred_option;
 
+
     return (
       <>
-
-
         <div id="listen-page">
+          {/* clip length is {clips.length} */}
+          {/* userId is {user.userId}*/}
+          {/* <ClipsContainer clips={clips} /> */}
+          {/* 
+          <div style={{width: '100%', height: "20px"}}></div>
+          {JSON.stringify(this.props.clips)}
+          <div style={{width: '100%', height: "20px"}}></div>
+          {JSON.stringify(clips)} */}
 
+          {/* {JSON.stringify(user.userId)} */}
 
-          <ClipsContainer clips={clips}/>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '45.7rem', display: 'flex', justifyContent: 'end' }}>
+              <LanguageSelect onSelectLanguage={this.handleLanguageSelect} api={api} />
+            </div>
+          </div>
 
           {noClips && isLoading && <Spinner delayMs={500} />}
           {!isSubmitted && (
             <NavigationPrompt
               when={() => {
-                
+
                 const isUnvalidatedClips = clips.some(
                   clip => clip.isValid !== null
                 )
@@ -335,7 +348,7 @@ class ListenPage extends React.Component<Props, State> {
                 return isUnvalidatedClips
               }}>
               {({ onCancel, onConfirm }) => {
-                
+
                 return (
                   <Modal
                     innerClassName="listen-abort"
@@ -374,6 +387,10 @@ class ListenPage extends React.Component<Props, State> {
             ref={this.audioRef}
           />
           <ContributionPage
+            errorMessage={errorMessage}
+            handleSubmit={text => this.handleSubmit(text)}
+            handleResetVote={this.handleResetVote}
+            votedNo={votedNo}
             activeIndex={clipIndex}
             demoMode={this.demoMode}
             hasErrors={!isLoading && (isMissingClips || hasLoadingError)}
@@ -434,6 +451,15 @@ class ListenPage extends React.Component<Props, State> {
                 />
               </>
             }
+            playButton={
+              <PlayButton
+                isPlaying={isPlaying}
+                onClick={this.play}
+                trackClass="play-clip"
+                data-testid="play-button"
+                style={{ width: "10px", height: '10px' }}
+              />
+            }
             pills={clips.map(
               ({ isValid }, i) =>
                 (props: ContributionPillProps) => {
@@ -471,21 +497,7 @@ class ListenPage extends React.Component<Props, State> {
             }}
             sentences={clips.map(clip => clip.sentence)}
             shortcuts={[
-              {
-                key: 'shortcut-play-toggle',
-                label: 'shortcut-play-toggle-label',
-                action: this.play,
-              },
-              {
-                key: 'shortcut-vote-yes',
-                label: 'vote-yes',
-                action: this.voteYes,
-              },
-              {
-                key: 'shortcut-vote-no',
-                label: 'vote-no',
-                action: this.voteNo,
-              },
+
             ]}
             type="listen"
             clips={clips}
@@ -526,8 +538,7 @@ const mapDispatchToProps = {
   removeClip: Clips.actions.remove,
   vote: Clips.actions.vote,
   addAchievement: Notifications.actions.addAchievement,
-  setAbortContributionModalVisible:
-    AbortContributionModalActions.setAbortContributionModalVisible,
+  setAbortContributionModalVisible: AbortContributionModalActions.setAbortContributionModalVisible,
   setAbortStatus: AbortContributionModalActions.setAbortStatus,
 }
 
@@ -535,3 +546,22 @@ export default connect<PropsFromState, any>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(ListenPage))
+
+
+
+
+// {
+//   key: 'shortcut-play-toggle',
+//   label: 'shortcut-play-toggle-label',
+//   action: this.play,
+// },
+// {
+//   key: 'shortcut-vote-yes',
+//   label: 'vote-yes',
+//   action: this.voteYes,
+// },
+// {
+//   key: 'shortcut-vote-no',
+//   label: 'vote-no',
+//   action: this.voteNo,
+// },

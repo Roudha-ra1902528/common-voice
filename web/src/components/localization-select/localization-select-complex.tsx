@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState } from 'react';
 import { useSelect } from 'downshift';
 import classNames from 'classnames';
 
@@ -23,7 +24,8 @@ function getLocaleWithName(locale: string) {
   return availableLocalesWithNames.find(({ code }) => code === locale);
 }
 
-const LocalizationSelectComplex = ({ locale, onLocaleChange }: Props) => {
+const LocalizationSelectComplex = ({ locale , onLocaleChange }: Props) => {
+  const [selectedLocale, setSelectedLocale] = useState('en');
   const availableLocales = useAvailableLocales();
   const availableLocalesWithNames = useNativeNameAvailableLocales();
   const { abortStatus } = useAbortContributionModal();

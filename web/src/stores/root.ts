@@ -17,6 +17,7 @@ import {
   AbortContributionModalAction,
   abortContributionModalReducer,
 } from './abort-contribution-modal';
+// import { LocaleStore } from './locale-store';
 
 export const USER_KEY = 'userdata';
 
@@ -41,6 +42,7 @@ export function reducers(
     flags,
     requestedLanguages,
     locale,
+    // localeName,
     languages,
     notifications,
     uploads,
@@ -50,6 +52,7 @@ export function reducers(
     clips: undefined,
     flags: undefined,
     locale: undefined,
+    // localeName: undefined,
     notifications: undefined,
     requestedLanguages: undefined,
     languages: undefined,
@@ -63,6 +66,7 @@ export function reducers(
     | Flags.Action
     | Languages.Action
     | Locale.Action
+    // | LocaleStore.Action
     | RequestedLanguages.Action
     | Sentences.Action
     | Uploads.Action
@@ -73,6 +77,7 @@ export function reducers(
     clips: Clips.reducer(locale, clips, action as Clips.Action),
     flags: Flags.reducer(flags, action as Flags.Action),
     locale: Locale.reducer(locale, action as Locale.Action),
+    // localeName: LocaleStore.reducer(localeName, action as LocaleStore.Action),
     languages: Languages.reducer(languages, action as Languages.Action),
     requestedLanguages: RequestedLanguages.reducer(
       requestedLanguages,

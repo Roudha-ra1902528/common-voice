@@ -3,7 +3,9 @@ export const up = async function (db: any): Promise<any> {
   // If the version table exists, the user already has all the tables below
   return db.runSql(
     row
-      ? 'DROP TABLE version'
+      ? `
+      DROP TABLE version
+      `
       : `
       CREATE TABLE user_clients (
         client_id CHAR(36) NOT NULL PRIMARY KEY,
@@ -48,6 +50,7 @@ export const up = async function (db: any): Promise<any> {
         clip_id BIGINT(20) UNSIGNED NOT NULL,
         is_valid TINYINT(1) DEFAULT NULL,
         client_id CHAR(36) NOT NULL,
+        transcription TEXT CHARACTER SET utf8,
         UNIQUE KEY clip_client_index (clip_id,client_id),
         KEY client_id (client_id),
         CONSTRAINT votes_ibfk_1 FOREIGN KEY (clip_id) REFERENCES clips (id),

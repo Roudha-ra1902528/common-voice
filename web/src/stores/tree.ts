@@ -9,6 +9,7 @@ import { RequestedLanguages } from './requested-languages';
 import { Uploads } from './uploads';
 import { User } from './user';
 import { AbortContributionModalState } from './abort-contribution-modal';
+// import { LocaleStore } from './locale-store';
 
 export default interface StateTree {
   api: API;

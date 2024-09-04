@@ -133,6 +133,10 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
 
   async function updateLocalization() {
     const localizationUserLocales = [...userLocales];
+    console.log(`
+      localizationUserLocales
+      ${localizationUserLocales}
+      `)
 
     const pathname = history.location.pathname;
 
@@ -161,6 +165,11 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
     );
 
     setLocalization(newLocalization);
+
+    console.log(`
+      ${replacePathLocale(pathname, DEFAULT_LOCALE)}
+
+      `)
   }
 
   useEffect(() => {

@@ -5,7 +5,7 @@
 
     &.contribution-page-active {
         @media (--xl-up) {
-            height: 130px;
+            height: 70px;
         }
 
         header {

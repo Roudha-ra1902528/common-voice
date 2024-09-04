@@ -159,6 +159,8 @@ export default class API {
 
     router.use('/:locale/bulk_submissions', bulkSubmissionsRouter)
 
+    router.get('/language', this.getClientLanguages)
+
     router.use('*', (request: Request, response: Response) => {
       response.sendStatus(404)
     })
@@ -240,6 +242,11 @@ export default class API {
 
   getRequestedLanguages = async (request: Request, response: Response) => {
     response.json(await this.model.db.getRequestedLanguages())
+  }
+
+  getClientLanguages = async (request: Request, response: Response) => {
+    const { client_id } = request
+    response.json(await this.model.db.getClientLanguages(client_id))
   }
 
   createLanguageRequest = async (request: Request, response: Response) => {

@@ -687,7 +687,7 @@ class SpeakPage extends React.Component<Props, State> {
               />
             </Localized>
           )}
-          <ContributionPage
+          {/* <ContributionPage
             demoMode={this.demoMode}
             activeIndex={recordingIndex}
             hasErrors={
@@ -827,7 +827,7 @@ class SpeakPage extends React.Component<Props, State> {
               },
             ]}
             type="speak"
-          />
+          /> */}
         </div>
       </>
     );

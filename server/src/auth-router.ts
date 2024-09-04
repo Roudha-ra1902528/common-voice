@@ -137,6 +137,7 @@ router.get(
     const { locale, old_user, old_email, redirect, enrollment } = currentState;
 
     const basePath = locale ? `/${locale}/` : '/';
+    
     if (!user) {
       response.redirect(basePath + 'login-failure');
     } else if (old_user) {
@@ -189,11 +190,34 @@ router.get(
 
 router.get('/login', (request: Request, response: Response) => {
   const { headers, user, query } = request;
+  console.log(`
+    ------------------------
+    request.headers in login
+    ${JSON.stringify(request.headers)}
+    ------------------------`)
   let locale = 'en';
   if (headers.referer) {
     const refererUrl = new URL(headers.referer);
     locale = refererUrl.pathname.split('/')[1] || 'en';
   }
+
+
+// account_verification
+// 	true
+// response_type
+// 	code
+// redirect_uri
+// 	http://localhost:9000/callback
+// scope
+// 	openid email
+// state
+// 	{"locale":"en","redirect":null,"enrollment":{"challenge":null,"team":null,"invite":null,"referer":null}}
+// client_id
+// 	G83MDzmMDgMPnGBpFE8B7pBiHlHjF1lB
+
+//http://localhost:9000/callback?code=GTzLWrzDE-oWQ6azd9q4krFtyuPwviyv1ZayFPQv72aQH&state=%7B%22locale%22%3A%22en%22%2C%22redirect%22%3Anull%2C%22enrollment%22%3A%7B%22challenge%22%3Anull%2C%22team%22%3Anull%2C%22invite%22%3Anull%2C%22referer%22%3Anull%7D%7D
+
+
   passport.authenticate('auth0', {
     state: AES.encrypt(
       JSON.stringify({
@@ -263,3 +287,36 @@ export async function authMiddleware(
 
   next();
 }
+
+
+
+// router.get('/login', (request: Request, response: Response) => {
+//   const { headers, user, query } = request;
+//   console.log(request)
+//   let locale = 'en';
+//   if (headers.referer) {
+//     const refererUrl = new URL(headers.referer);
+//     locale = refererUrl.pathname.split('/')[1] || 'en';
+//   }
+//   passport.authenticate('auth0', {
+//     state: AES.encrypt(
+//       JSON.stringify({
+//         locale,
+//         ...(user && query.change_email !== undefined
+//           ? {
+//               old_user: request.user,
+//               old_email: user.emails[0].value,
+//             }
+//           : {}),
+//         redirect: query.redirect || null,
+//         enrollment: {
+//           challenge: query.challenge || null,
+//           team: query.team || null,
+//           invite: query.invite || null,
+//           referer: query.referer || null,
+//         },
+//       }),
+//       SECRET
+//     ).toString(),
+//   } as any)(request, response);
+// });

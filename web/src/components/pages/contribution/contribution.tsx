@@ -25,6 +25,7 @@ import {
   ExternalLinkIcon,
   ArrowLeft,
   QuestionIcon,
+  ThumbsUpIcon,
 } from '../../ui/icons';
 import { Tag } from './tag';
 import { Button, StyledLink, LabeledCheckbox, LinkButton } from '../../ui/ui';
@@ -38,9 +39,11 @@ import { Notifications } from '../../../stores/notifications';
 import { SecondPostSubmissionCTA } from './speak/secondSubmissionCTA/secondSubmissionCTA';
 import Success from './success';
 import { Clip as ClipType } from 'common';
+import DialogPopUp from '../contribution/listen/DialogPopUp'
 
 
 import './contribution.css';
+import { useRef } from 'react';
 
 export const SET_COUNT = 5;
 
@@ -65,8 +68,12 @@ interface PropsFromDispatch {
 
 export interface ContributionPageProps
   extends WithLocalizationProps,
-    PropsFromState,
-    PropsFromDispatch {
+  PropsFromState,
+  PropsFromDispatch {
+  errorMessage: boolean,
+  handleSubmit: (text: string) => void
+  handleResetVote: () => void
+  votedNo: boolean
   demoMode: boolean;
   activeIndex: number;
   hasErrors: boolean;
@@ -87,6 +94,7 @@ export interface ContributionPageProps
   shouldShowFirstCTA?: boolean;
   shouldShowSecondCTA?: boolean;
   primaryButtons: React.ReactNode;
+  playButton: React.ReactNode;
   pills: ((props: ContributionPillProps) => React.ReactNode)[];
   sentences: Sentence[];
   shortcuts: {
@@ -104,6 +112,13 @@ interface State {
   showReportModal: boolean;
   showShareModal: boolean;
   showShortcutsModal: boolean;
+  showDropdown: boolean
+  selectedItem: string
+}
+
+interface DialogRef {
+  openDialog: () => void;
+  closeDialog: () => void;
 }
 
 class ContributionPage extends React.Component<ContributionPageProps, State> {
@@ -118,13 +133,15 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
     showReportModal: false,
     showShareModal: false,
     showShortcutsModal: false,
+    showDropdown: false,
+    selectedItem: 'this transcription by this person - show upvotes of the most upvoted transcription'
   };
 
   private canvasRef: { current: HTMLCanvasElement | null } = React.createRef();
+  private dialogRef: React.RefObject<DialogRef> = React.createRef();
   private wave: Wave;
 
   componentDidMount() {
-    console.log(this.prop.clips ?? 'noclips')
     this.startWaving();
     window.addEventListener('keydown', this.handleKeyDown);
   }
@@ -159,6 +176,11 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
       label: 'skip',
       action: onSkip,
     });
+    // return shortcuts.concat({
+    //   key: 'shortcut-skip',
+    //   label: 'skip',
+    //   action: onSkip,
+    // });
   }
 
   private startWaving = () => {
@@ -181,8 +203,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
     this.setState({ selectedPill: i });
   }
 
-  private toggleShareModal = () =>
-    this.setState({ showShareModal: !this.state.showShareModal });
+  private toggleShareModal = () => this.setState({ showShareModal: !this.state.showShareModal });
 
   private toggleShortcutsModal = () => {
     const showShortcutsModal = !this.state.showShortcutsModal;
@@ -197,41 +218,51 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
   };
 
   private handleKeyDown = (event: any) => {
-    const { getString, isSubmitted, locale, onReset, onSubmit, type } =
-      this.props;
+    // const { getString, isSubmitted, locale, onReset, onSubmit, type } =
+    //   this.props;
 
-    if (
-      event.ctrlKey ||
-      event.altKey ||
-      event.shiftKey ||
-      event.metaKey ||
-      this.state.showReportModal ||
-      this.props.shouldShowFirstCTA
-    ) {
-      return;
-    }
+    // if (
+    //   event.ctrlKey ||
+    //   event.altKey ||
+    //   event.shiftKey ||
+    //   event.metaKey ||
+    //   this.state.showReportModal ||
+    //   this.props.shouldShowFirstCTA
+    // ) {
+    //   return;
+    // }
 
-    const isEnter = event.key === 'Enter';
-    if (isSubmitted && isEnter) {
-      onReset();
-      return;
-    }
-    if (this.isDone) {
-      if (isEnter && onSubmit) onSubmit();
-      return;
-    }
+    // const isEnter = event.key === 'Enter';
+    // if (isSubmitted && isEnter) {
+    //   onReset();
+    //   return;
+    // }
+    // if (this.isDone) {
+    //   if (isEnter && onSubmit) onSubmit();
+    //   return;
+    // }
 
-    const shortcut = this.shortcuts.find(
-      ({ key }) => getString(key).toLowerCase() === event.key
-    );
-    if (!shortcut) return;
+    // const shortcut = this.shortcuts.find(
+    //   ({ key }) => getString(key).toLowerCase() === event.key
+    // );
+    // if (!shortcut) return;
 
-    shortcut.action();
-    ((type === 'listen' ? trackListening : trackRecording) as any)(
-      'shortcut',
-      locale
-    );
-    event.preventDefault();
+    // shortcut.action();
+    // ((type === 'listen' ? trackListening : trackRecording) as any)(
+    //   'shortcut',
+    //   locale
+    // );
+    // event.preventDefault();
+  };
+
+  private toggleDropdown = () => this.setState({ showDropdown: !this.state.showDropdown })
+
+  private handleItemClick = (item: string) => {
+    this.setState({ selectedItem: item, showDropdown: false })
+  };
+
+  private handleOpenDialog = () => {
+    this.dialogRef.current?.openDialog()
   };
 
   render() {
@@ -248,6 +279,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
     const { showReportModal, showShareModal, showShortcutsModal } = this.state;
 
     return (
+
       <div
         className="contribution-wrapper"
         data-testid="contribution-page"
@@ -255,7 +287,9 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
         {showShareModal && (
           <ShareModal onRequestClose={this.toggleShareModal} />
         )}
-        {showShortcutsModal && (
+
+
+        {/* {showShortcutsModal && (
           <Modal
             innerClassName="shortcuts-modal"
             onRequestClose={this.toggleShortcutsModal}>
@@ -273,7 +307,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
               ))}
             </div>
           </Modal>
-        )}
+        )} */}
         {showReportModal && (
           <ReportModal
             onRequestClose={() => this.setState({ showReportModal: false })}
@@ -296,8 +330,8 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
                   user.account && !demoMode
                     ? URLS.DASHBOARD
                     : demoMode
-                    ? URLS.DEMO_CONTRIBUTE
-                    : URLS.ROOT
+                      ? URLS.DEMO_CONTRIBUTE
+                      : URLS.ROOT
                 }
                 className="back">
                 <ArrowLeft />
@@ -337,6 +371,10 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
 
   renderContent() {
     const {
+      errorMessage,
+      handleSubmit,
+      handleResetVote,
+      votedNo,
       activeIndex,
       hasErrors,
       errorContent,
@@ -348,6 +386,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
       onSubmit,
       pills,
       primaryButtons,
+      playButton,
       sentences,
       type,
       onPrivacyAgreedChange,
@@ -356,7 +395,7 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
       shouldShowSecondCTA,
       user,
     } = this.props;
-    const { selectedPill } = this.state;
+    const { selectedPill, showDropdown, selectedItem } = this.state;
 
     const noUserAccount = !user.account;
 
@@ -383,8 +422,9 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
 
     return (
       <>
-      
+
         <div className="cards-and-pills">
+
           <div />
 
           {shouldShowCTA ? (
@@ -419,10 +459,9 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
                       style={{
                         transform: [
                           `scale(${isActive ? 1 : 0.9})`,
-                          `translateX(${
-                            (document.dir == 'rtl' ? -1 : 1) *
-                            (i - activeSentenceIndex) *
-                            -130
+                          `translateX(${(document.dir == 'rtl' ? -1 : 1) *
+                          (i - activeSentenceIndex) *
+                          -130
                           }%)`,
                         ].join(' '),
                         opacity: i < activeSentenceIndex ? 0 : 1,
@@ -488,10 +527,10 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
                     onShare: this.toggleShareModal,
                     style:
                       selectedPill !== null &&
-                      Math.abs(
-                        Math.min(Math.max(selectedPill, 1), pills.length - 2) -
+                        Math.abs(
+                          Math.min(Math.max(selectedPill, 1), pills.length - 2) -
                           i
-                      ) > 1
+                        ) > 1
                         ? { display: 'none' }
                         : {},
                   })
@@ -524,6 +563,20 @@ class ContributionPage extends React.Component<ContributionPageProps, State> {
           <canvas ref={this.canvasRef} />
           {primaryButtons}
         </div>
+
+        {/* correct transcription 
+        
+        
+        */}
+
+        {/* <button onClick={this.handleOpenDialog}>Open Dialog</button> */}
+        <DialogPopUp 
+        playButton={playButton}
+        handleResetVote={handleResetVote} 
+        initialText={sentences[activeIndex].text} 
+        ref={this.dialogRef} 
+        votedNo={votedNo} 
+        handleSubmit={(text) => handleSubmit(text)} />
 
         {!hasErrors && !isSubmitted && (
           <LocaleLink
@@ -633,3 +686,65 @@ export default connect<PropsFromState, PropsFromDispatch>(
     addNotification: Notifications.actions.addPill,
   }
 )(withLocalization(ContributionPage));
+
+
+
+
+
+// <div className={`animated-dropdown ${votedNo ? 'open' : ''}`} style={{ height: '35rem', margin: '80px 0 0 0', border: '0px solid #ccc', borderRadius: '5px', width: '100%', justifyContent: 'center', display: 'flex' }}>
+
+// <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '2.2rem', height: '100%', alignItems: 'center' }}>
+
+//   <div style={{ width: '100%', display: 'flex', flexDirection: 'column',  gap: '1.1rem', alignItems: 'center' }}>
+//     <h3 style={{ display: 'block', marginBottom: '0px', width: '50%' }}>Confirm Users Transcription:</h3>
+//     <div className="dropdown-container">
+//       <div onClick={this.toggleDropdown} className="dropdown-display">
+//         {selectedItem}
+//         <span style={{}}>&#9660;</span> {/* Downward arrow */}
+//       </div>
+//       <div className={`dropdown-content ${showDropdown ? 'show' : ''}`}>
+//         <div onClick={() => this.handleItemClick('this transcription was shown to be the most upvoted having 23 votes this transcription was shown to be the most upvoted having 23 votes')}>
+//           <p>this transcription was shown to be the most upvoted having 23 votes this transcription was shown to be the most upvoted having 23 votes </p>
+//           <div>
+//             <ThumbsUpIcon />
+//             <p>23</p>
+//           </div>
+//         </div>
+
+//         <div onClick={() => this.handleItemClick('Option 2')}>
+//           <p>Option 2</p>
+//           <div>
+//             <ThumbsUpIcon />
+//             <p>3</p>
+//           </div>
+//         </div>
+
+//         <div onClick={() => this.handleItemClick('Option 3')}>
+//           <p>Option 3</p>
+//           <div>
+//             <ThumbsUpIcon />
+//             <p>2</p>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+
+
+//   <span style={{ display: 'block', marginBottom: '0px', width: '65%', fontFamily: 'sans-serif', fontSize: '1rem', color: '#4a4a4a', fontWeight: 'bold'}}>OR</span>
+
+//   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: "inherit", gap: '1.1rem', alignItems: 'center'}}>
+//     <h3 style={{ display: 'block', marginBottom: '0px', width: '50%' }}>Enter New Transcription:</h3>
+//     <textarea
+//       className="card"
+//       value={textFieldValue}
+//       onChange={e => handleInputChange(e.target.value)}
+//       style={{ fontSize: '1.5rem', height: '10rem', padding: '8px', width: '50%', boxSizing: 'border-box', borderRadius: '5px', border: '1px solid #ccc', boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)' }}
+//     />
+//     <Button rounded outline onClick={handleSubmit} style={{ marginTop: '10px' }}>Submit</Button>
+//     {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+//   </div>
+
+// </div>
+
+// </div>
