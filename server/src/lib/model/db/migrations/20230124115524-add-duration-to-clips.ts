@@ -6,9 +6,11 @@ export const up = async function (db: any): Promise<any> {
 
   if (!row) {
     return db.runSql(`
-      ALTER TABLE clips ADD COLUMN duration INT NOT NULL DEFAULT 0,
+      /*
+     -- ALTER TABLE clips ADD COLUMN duration INT NOT NULL DEFAULT 0,
       ALGORITHM = INPLACE,
       LOCK = NONE;
+      */
     `);
   }
 

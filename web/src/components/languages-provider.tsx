@@ -55,8 +55,7 @@ const LanguageRoutes = ({
         render={something => {
           const localeParam = something?.match?.params?.locale
 
-          const hasTranslatedLocale =
-            languages.translatedLocales.includes(localeParam)
+          const hasTranslatedLocale = true
 
           if (hasTranslatedLocale) {
             if (primaryUserLocale !== localeParam) {
@@ -133,16 +132,12 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
 
   async function updateLocalization() {
     const localizationUserLocales = [...userLocales];
-    console.log(`
-      localizationUserLocales
-      ${localizationUserLocales}
-      `)
 
     const pathname = history.location.pathname;
 
     if (!languages.translatedLocales.includes(userLocales[0])) {
       localizationUserLocales[0] = DEFAULT_LOCALE;
-      setUserLocales(localizationUserLocales);
+      // setUserLocales(localizationUserLocales);
 
       setLocale(DEFAULT_LOCALE);
       history.replace(replacePathLocale(pathname, DEFAULT_LOCALE));
@@ -165,11 +160,6 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
     );
 
     setLocalization(newLocalization);
-
-    console.log(`
-      ${replacePathLocale(pathname, DEFAULT_LOCALE)}
-
-      `)
   }
 
   useEffect(() => {
@@ -197,11 +187,14 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
   }
 
   return (
-    <LocalizationProvider l10n={localization}>
-      <LanguageRoutes userLocales={userLocales} setUserLocales={setUserLocales}>
-        {children}
-      </LanguageRoutes>
-    </LocalizationProvider>
+    <>
+      {JSON.stringify(localization)}
+      <LocalizationProvider l10n={localization}>
+        <LanguageRoutes userLocales={userLocales} setUserLocales={setUserLocales}>
+          {children}
+        </LanguageRoutes>
+      </LocalizationProvider>
+    </>
   );
 };
 

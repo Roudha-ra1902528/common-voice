@@ -16,9 +16,9 @@ export const up = async function (db: any): Promise<any> {
 
       ALTER TABLE locales MODIFY id INT NOT NULL AUTO_INCREMENT;
 
-      ALTER TABLE clips
+     /* ALTER TABLE clips
         MODIFY locale_id INT,
-        ADD CONSTRAINT FOREIGN KEY (locale_id) REFERENCES locales(id);
+        ADD CONSTRAINT FOREIGN KEY (locale_id) REFERENCES locales(id);*/
 
       ALTER TABLE sentences
         MODIFY locale_id INT,

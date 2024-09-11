@@ -5,7 +5,7 @@ export const up = async function (db: any): Promise<any> {
     ALTER TABLE awards DROP FOREIGN KEY awards_ibfk_2;
     ALTER TABLE awards ADD CONSTRAINT awards_ibfk_2 FOREIGN KEY (custom_goal_id) REFERENCES custom_goals (id) ON DELETE CASCADE;
 
-    ALTER TABLE clips DROP FOREIGN KEY clips_ibfk_2;
+  --  ALTER TABLE clips DROP FOREIGN KEY clips_ibfk_2;
 
     ALTER TABLE custom_goals DROP FOREIGN KEY custom_goals_ibfk_1;
     ALTER TABLE custom_goals ADD CONSTRAINT custom_goals_ibfk_1 FOREIGN KEY (client_id) REFERENCES user_clients (client_id) ON DELETE CASCADE;
@@ -39,9 +39,9 @@ export const up = async function (db: any): Promise<any> {
     ALTER TABLE user_client_locale_buckets DROP FOREIGN KEY user_client_locale_buckets_ibfk_1;
     ALTER TABLE user_client_locale_buckets ADD CONSTRAINT user_client_locale_buckets_ibfk_1 FOREIGN KEY (client_id) REFERENCES user_clients (client_id) ON DELETE CASCADE;
 
-    ALTER TABLE votes DROP FOREIGN KEY votes_ibfk_1;
+    -- ALTER TABLE votes DROP FOREIGN KEY votes_ibfk_1;
     ALTER TABLE votes ADD CONSTRAINT votes_ibfk_1 FOREIGN KEY (clip_id) REFERENCES clips (id) ON DELETE CASCADE;
-    ALTER TABLE votes DROP FOREIGN KEY votes_ibfk_2;
+    -- ALTER TABLE votes DROP FOREIGN KEY votes_ibfk_2;
     ALTER TABLE votes ADD CONSTRAINT votes_ibfk_2 FOREIGN KEY (client_id) REFERENCES user_clients (client_id) ON DELETE CASCADE;
 
   `);

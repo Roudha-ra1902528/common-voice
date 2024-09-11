@@ -10,7 +10,7 @@ export const up = async function (db: any): Promise<any> {
       
       ALTER TABLE sentences ADD COLUMN locale_id SMALLINT NOT NULL DEFAULT 1;
       
-      ALTER TABLE clips ADD COLUMN locale_id SMALLINT NOT NULL DEFAULT 1;
+      -- ALTER TABLE clips ADD COLUMN locale_id SMALLINT NOT NULL DEFAULT 1;
     `
   );
 };

@@ -1,7 +1,7 @@
 export const up = async function (db: any): Promise<any> {
   // Note: Manual backfill to follow.
   return db.runSql(`
-    ALTER TABLE clips ADD COLUMN validated_at DATE DEFAULT NULL;
+   -- ALTER TABLE clips ADD COLUMN validated_at DATE DEFAULT NULL;
   `);
 };
 

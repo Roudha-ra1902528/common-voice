@@ -1,4 +1,4 @@
-version: '3'
+version: '3.1'
 services:
   db:
     image: mysql:5.7.44
@@ -75,5 +75,3 @@ services:
 
 networks:
   voice-web:
-volumes:
-  cv-data:

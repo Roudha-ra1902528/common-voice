@@ -1,7 +1,7 @@
 export const up = async function (db: any): Promise<any> {
   return db.runSql(
     `
-      ALTER TABLE clips ADD INDEX sentence_idx (sentence(300));
+      -- ALTER TABLE clips ADD INDEX sentence_idx (sentence(300));
     `
   );
 };

@@ -191,7 +191,7 @@ export default class API {
     return this.fetch(this.getClipPath() + '/votes/daily_count')
   }
 
-  fetchLocaleMessages(locale: string): Promise<string> {
+  fetchLocaleMessages(locale: string = 'en'): Promise<string> {
     return this.fetch(`/locales/${locale}/messages.ftl`, { isJSON: false })
   }
 
