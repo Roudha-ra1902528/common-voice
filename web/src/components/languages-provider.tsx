@@ -188,7 +188,6 @@ const LanguagesProvider = ({ children }: LanguagesProviderProps) => {
 
   return (
     <>
-      {JSON.stringify(localization)}
       <LocalizationProvider l10n={localization}>
         <LanguageRoutes userLocales={userLocales} setUserLocales={setUserLocales}>
           {children}
