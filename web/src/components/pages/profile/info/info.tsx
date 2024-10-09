@@ -201,6 +201,10 @@ function ProfileInfo({
         </Localized>
       )}
 
+      <Localized id="why-profile-text">
+        <p />
+      </Localized>
+
       <ExpandableInformation summaryLocalizedId="why-demographic">
         <Localized id="why-demographic-explanation-2">
           <div />
@@ -269,12 +273,12 @@ function ProfileInfo({
         </Localized>
       </ExpandableInformation>
 
-      {/* <ProfileInfoLanguages
+      <ProfileInfoLanguages
         userLanguages={userLanguages}
         setUserLanguages={setUserLanguages}
         areLanguagesLoading={areLanguagesLoading}
         setAreLanguagesLoading={setAreLanguagesLoading}
-      /> */}
+      />
 
       <Hr />
 
@@ -290,7 +294,7 @@ function ProfileInfo({
               </Localized>
             </Tooltip>
 
-            {/* <div className="checkboxes">
+            <div className="checkboxes">
               <LabeledCheckbox
                 label={
                   <>
@@ -335,7 +339,7 @@ function ProfileInfo({
                   blank
                 />
               </Localized>
-            </div> */}
+            </div>
           </div>
 
           <Hr />
@@ -346,7 +350,7 @@ function ProfileInfo({
         <Button
           className="save"
           rounded
-          disabled={isSaving}
+          disabled={isSaving || !privacyAgreed || areLanguagesLoading}
           onClick={submit}
         />
       </Localized>

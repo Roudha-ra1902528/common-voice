@@ -135,14 +135,6 @@ export default class Server {
 
       app.use(authRouter);
 
-      function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
-        if (req.isAuthenticated()) {
-          return next();  // Proceed if the user is authenticated
-        }
-        
-        res.redirect('/login');  // Redirect to login if not authenticated
-      }
-
       app.use('/api/v1', this.api.getRouter());
 
       app.use(express.static(FULL_CLIENT_PATH, staticOptions));
@@ -154,13 +146,7 @@ export default class Server {
       this.setupPrivacyAndTermsRoutes();
 
       app.use(
-        '/en/',
-        express.static(FULL_CLIENT_PATH + '/index.html', staticOptions)
-      );
-      
-      app.use(
         /(.*)/,
-        ensureAuthenticated,
         express.static(FULL_CLIENT_PATH + '/index.html', staticOptions)
       );
 
@@ -392,17 +378,3 @@ export default class Server {
     await this.model.db.empty();
   }
 }
-
-      // app.get('/', (req, res) => {
-        
-      //   //Set headers manually
-      //   res.setHeader('X-Release-Version', RELEASE_VERSION);
-      //   res.setHeader('X-Environment', ENVIRONMENT);
-      //   res.setHeader('X-Content-Type-Options', 'nosniff');
-      //   res.setHeader('X-XSS-Protection', '1; mode=block');
-      //   res.setHeader('X-Frame-Options', 'DENY');
-      //   res.setHeader('Strict-Transport-Security', 'max-age=' + SECONDS_IN_A_YEAR);
-      
-      //   // Send the file
-      //   res.sendFile(FULL_CLIENT_PATH + '/index.html');
-      // });

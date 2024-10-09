@@ -116,16 +116,11 @@ export default class Bucket {
 
 
       if (path.startsWith('https://') || path.startsWith('https://')) {
-        const url = new URL(path);
-        url.protocol = 'http:';
-        url.port = '7000';
-        const modifiedPath = url.href;  // Create the modified URL
-
         clipPromises.push({
           id: id.toString(),
           glob: path.replace('.mp3', ''),
           sentence: { id: original_sentence_id, text: sentence, taxonomy },
-          audioSrc: modifiedPath,
+          audioSrc: path,
         })
       } else {
 
