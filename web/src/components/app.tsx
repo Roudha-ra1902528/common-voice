@@ -79,10 +79,10 @@ interface PropsFromDispatch {
 
 interface LocalizedPagesProps
   extends PropsFromState,
-    PropsFromDispatch,
-    LocalePropsFromState,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    RouteComponentProps<any, any, any> {}
+  PropsFromDispatch,
+  LocalePropsFromState,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  RouteComponentProps<any, any, any> { }
 
 interface LocalizedPagesState {
   uploadPercentage?: number
@@ -122,21 +122,20 @@ let LocalizedPage: any = class extends React.Component<
     window.onbeforeunload =
       uploads.length > 0
         ? (e: any) =>
-            (e.returnValue =
-              'Leaving the page now aborts pending uploads. Are you sure?')
+        (e.returnValue =
+          'Leaving the page now aborts pending uploads. Are you sure?')
         : undefined
 
     const award = account?.awards
       ? account.awards.find(
-          a => !a.notification_seen_at && !this.seenAwardIds.includes(a.id)
-        )
+        a => !a.notification_seen_at && !this.seenAwardIds.includes(a.id)
+      )
       : null
 
     if (award) {
       this.seenAwardIds.push(...account.awards.map(a => a.id))
       addNotification(
-        `Success, ${award.amount} Clip ${
-          award.days_interval == 1 ? 'daily' : 'weekly'
+        `Success, ${award.amount} Clip ${award.days_interval == 1 ? 'daily' : 'weekly'
         } goal achieved!`,
         {
           links: [
@@ -214,16 +213,16 @@ let LocalizedPage: any = class extends React.Component<
           style={
             uploadPercentage === null
               ? {
-                  opacity: 0,
-                  width: '100%',
-                  background: '#59cbb7',
-                  animationPlayState: 'paused',
-                }
+                opacity: 0,
+                width: '100%',
+                background: '#59cbb7',
+                animationPlayState: 'paused',
+              }
               : {
-                  opacity: 1,
-                  width: uploadPercentage * 100 + '%',
-                  animationPlayState: 'running',
-                }
+                opacity: 1,
+                width: uploadPercentage * 100 + '%',
+                animationPlayState: 'running',
+              }
           }
         />
         <div className="notifications">

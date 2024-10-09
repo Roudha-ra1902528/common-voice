@@ -33,7 +33,6 @@ COPY .. /code
 # Setup work directory
 WORKDIR /code
 
-
 # Create directory for storing logs
 RUN mkdir /code/logs
 
