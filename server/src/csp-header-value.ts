@@ -38,6 +38,7 @@ const SOURCES = {
     'https://*.googleapis.com',
     'https://www2.cs.uic.edu', 
     'https://rasd.green.org:*',
+    'http://rasd.green.org:*',
   ],
   'script-src': [
     "'self'",

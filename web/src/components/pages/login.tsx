@@ -37,7 +37,7 @@ export const LoginSuccess = withRouter(
 
       history.replace(
         account
-          ? redirectURL || toLocaleRoute(URLS.DASHBOARD + location.search)
+          ? redirectURL || toLocaleRoute(URLS.LISTEN)
           : URLS.PROFILE_INFO + location.search
       );
     }, [user]);

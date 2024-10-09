@@ -46,6 +46,8 @@ router.use(
     saveUninitialized: false,
   })
 );
+
+
 router.use(passport.initialize());
 router.use(passport.session());
 
@@ -137,10 +139,11 @@ router.get(
     const { locale, old_user, old_email, redirect, enrollment } = currentState;
 
     const basePath = locale ? `/${locale}/` : '/';
-    
+
     if (!user) {
       response.redirect(basePath + 'login-failure');
-    } else if (old_user) {
+    }
+    else if (old_user) {
       const success = await UserClient.updateSSO(
         old_email,
         user.emails[0].value
@@ -149,7 +152,8 @@ router.get(
         session.passport.user = old_user;
       }
       response.redirect('/profile/settings?success=' + success.toString());
-    } else if (enrollment?.challenge && enrollment?.team) {
+    }
+    else if (enrollment?.challenge && enrollment?.team) {
       if (
         !(await UserClient.enrollRegisteredUser(
           user.emails[0].value,
@@ -180,9 +184,10 @@ router.get(
       // [BUG] try refresh the challenge board, toast will show again, even though DB won't give it the same achievement again
       response.redirect(
         redirect ||
-          `${basePath}login-success?challenge=${enrollment.challenge}&achievement=1`
+        `${basePath}login-success?challenge=${enrollment.challenge}&achievement=1`
       );
-    } else {
+    }
+    else {
       response.redirect(redirect || basePath + 'login-success');
     }
   }
@@ -190,11 +195,7 @@ router.get(
 
 router.get('/login', (request: Request, response: Response) => {
   const { headers, user, query } = request;
-  console.log(`
-    ------------------------
-    request.headers in login
-    ${JSON.stringify(request.headers)}
-    ------------------------`)
+
   let locale = 'en';
   if (headers.referer) {
     const refererUrl = new URL(headers.referer);
@@ -202,20 +203,20 @@ router.get('/login', (request: Request, response: Response) => {
   }
 
 
-// account_verification
-// 	true
-// response_type
-// 	code
-// redirect_uri
-// 	http://localhost:9000/callback
-// scope
-// 	openid email
-// state
-// 	{"locale":"en","redirect":null,"enrollment":{"challenge":null,"team":null,"invite":null,"referer":null}}
-// client_id
-// 	G83MDzmMDgMPnGBpFE8B7pBiHlHjF1lB
+  // account_verification
+  // 	true
+  // response_type
+  // 	code
+  // redirect_uri
+  // 	http://localhost:9000/callback
+  // scope
+  // 	openid email
+  // state
+  // 	{"locale":"en","redirect":null,"enrollment":{"challenge":null,"team":null,"invite":null,"referer":null}}
+  // client_id
+  // 	G83MDzmMDgMPnGBpFE8B7pBiHlHjF1lB
 
-//http://localhost:9000/callback?code=GTzLWrzDE-oWQ6azd9q4krFtyuPwviyv1ZayFPQv72aQH&state=%7B%22locale%22%3A%22en%22%2C%22redirect%22%3Anull%2C%22enrollment%22%3A%7B%22challenge%22%3Anull%2C%22team%22%3Anull%2C%22invite%22%3Anull%2C%22referer%22%3Anull%7D%7D
+  //http://localhost:9000/callback?code=GTzLWrzDE-oWQ6azd9q4krFtyuPwviyv1ZayFPQv72aQH&state=%7B%22locale%22%3A%22en%22%2C%22redirect%22%3Anull%2C%22enrollment%22%3A%7B%22challenge%22%3Anull%2C%22team%22%3Anull%2C%22invite%22%3Anull%2C%22referer%22%3Anull%7D%7D
 
 
   passport.authenticate('auth0', {
@@ -224,9 +225,9 @@ router.get('/login', (request: Request, response: Response) => {
         locale,
         ...(user && query.change_email !== undefined
           ? {
-              old_user: request.user,
-              old_email: user.emails[0].value,
-            }
+            old_user: request.user,
+            old_email: user.emails[0].value,
+          }
           : {}),
         redirect: query.redirect || null,
         enrollment: {
@@ -242,51 +243,71 @@ router.get('/login', (request: Request, response: Response) => {
 });
 
 router.get('/logout', (request: Request, response: Response) => {
-  response.clearCookie('connect.sid');
-  response.redirect('/');
+  const {
+    AUTH0: { DOMAIN, CLIENT_ID },
+  } = getConfig();
+  const returnTo = encodeURIComponent('http://localhost:9000/'); // The URL to redirect to after logging out
+  const auth0LogoutURL = `https://${DOMAIN}/v2/logout?client_id=${CLIENT_ID}&returnTo=${returnTo}`;
+
+  // Destroy session and clear cookie
+  request.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return response.status(500).send('Could not log out.');
+    }
+
+    response.clearCookie('connect.sid', { path: '/' });
+
+    // Redirect to Auth0 logout URL
+    response.redirect(auth0LogoutURL);
+  });
 });
 
-export default router;
 
-const db = new DB();
-export async function authMiddleware(
-  request: Request,
-  response: Response,
-  next: NextFunction
-) {
-  if (request.user) {
-    const accountClientId = await UserClient.findClientId(
-      request.user.emails[0].value
-    );
-    if (accountClientId) {
-      request.client_id = accountClientId;
-      next();
-      return;
-    }
-  }
 
-  const [authType, credentials] = (request.header('Authorization') || '').split(
-    ' '
-  );
-  if (authType === 'Basic') {
-    const [client_id, auth_token] = Buffer.from(credentials, 'base64')
-      .toString()
-      .split(':');
-    if (await UserClient.hasSSO(client_id)) {
-      response.sendStatus(401);
-      return;
-    } else {
-      const verified = await db.createOrVerifyUserClient(client_id, auth_token);
-      if (!verified) {
-        response.sendStatus(401);
+
+
+  export default router;
+
+  const db = new DB();
+  export async function authMiddleware(
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) {
+    if (request.user) {
+      const accountClientId = await UserClient.findClientId(
+        request.user.emails[0].value
+      );
+      if (accountClientId) {
+        request.client_id = accountClientId;
+        next();
         return;
       }
     }
-    request.client_id = client_id;
-  }
 
-  next();
-}
+    const [authType, credentials] = (request.header('Authorization') || '').split(
+      ' '
+    );
+    if (authType === 'Basic') {
+      const [client_id, auth_token] = Buffer.from(credentials, 'base64')
+        .toString()
+        .split(':');
+      if (await UserClient.hasSSO(client_id)) {
+        response.sendStatus(401);
+        return;
+      } else {
+        const verified = await db.createOrVerifyUserClient(client_id, auth_token);
+        if (!verified) {
+          response.sendStatus(401);
+          return;
+        }
+      }
+      request.client_id = client_id;
+    }
+
+    next();
+  }
 
 
 
